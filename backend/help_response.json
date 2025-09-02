@@ -1,0 +1,1 @@
+{"response":"我可以帮助您：\n1. 预约会议室 - 说\"我要预约明天下午2点的会议室\"\n2. 查询预约 - 说\"查看我的预约\"\n3. 取消预约 - 说\"取消预约\"\n4. 修改预约 - 说\"修改预约时间\"","session_id":"a79919b4-7565-4489-972d-4d2fc1cb2d50","intent":"help","entities":{},"suggestions":["预约会议室","查看我的预约","取消预约","修改预约"],"reservation_created":false,"audio_url":null}

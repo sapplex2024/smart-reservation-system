@@ -1,0 +1,1 @@
+{"response":"创建预约时发生错误，请稍后重试","session_id":"666cbf28-99bd-41e8-a7b2-5f0d692e91b9","intent":"reservation","entities":{"time":["10","明天","12","上午"],"room_type":["大"]},"suggestions":[],"reservation_created":false,"audio_url":null}

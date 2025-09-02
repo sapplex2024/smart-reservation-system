@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>认证测试</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .container { max-width: 600px; margin: 0 auto; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; }
+        input, textarea { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
+        button { background: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        .result { margin-top: 20px; padding: 10px; border-radius: 4px; }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>智能预约系统 - 认证测试</h1>
+        
+        <div class="form-group">
+            <h2>1. 登录</h2>
+            <label>用户名:</label>
+            <input type="text" id="username" value="admin">
+            <label>密码:</label>
+            <input type="password" id="password" value="admin123">
+            <button onclick="login()">登录</button>
+        </div>
+        
+        <div class="form-group">
+            <h2>2. 添加会议室</h2>
+            <label>会议室名称:</label>
+            <input type="text" id="roomName" value="测试会议室">
+            <label>位置:</label>
+            <input type="text" id="location" value="1楼">
+            <label>容量:</label>
+            <input type="number" id="capacity" value="10">
+            <label>描述:</label>
+            <textarea id="description">测试用会议室</textarea>
+            <button onclick="addRoom()">添加会议室</button>
+        </div>
+        
+        <div class="form-group">
+            <h2>3. 获取会议室列表</h2>
+            <button onclick="getRooms()">获取会议室列表</button>
+        </div>
+        
+        <div id="result"></div>
+    </div>
+    
+    <script>
+        let token = localStorage.getItem('token');
+        
+        function showResult(message, isError = false) {
+            const result = document.getElementById('result');
+            result.innerHTML = `<div class="result ${isError ? 'error' : 'success'}">${message}</div>`;
+        }
+        
+        async function login() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            try {
+                const formData = new FormData();
+                formData.append('username', username);
+                formData.append('password', password);
+                
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.detail || '登录失败');
+                }
+                
+                const data = await response.json();
+                token = data.access_token;
+                localStorage.setItem('token', token);
+                
+                showResult(`登录成功！Token: ${token.substring(0, 50)}...`);
+            } catch (error) {
+                showResult(`登录失败: ${error.message}`, true);
+            }
+        }
+        
+        async function addRoom() {
+            if (!token) {
+                showResult('请先登录', true);
+                return;
+            }
+            
+            const roomData = {
+                name: document.getElementById('roomName').value,
+                type: 'meeting_room',
+                description: document.getElementById('description').value,
+                location: document.getElementById('location').value,
+                capacity: parseInt(document.getElementById('capacity').value)
+            };
+            
+            try {
+                const response = await fetch('/api/resources/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(roomData)
+                });
+                
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.detail || error.message || '添加失败');
+                }
+                
+                const data = await response.json();
+                showResult(`会议室添加成功！ID: ${data.id}, 名称: ${data.name}`);
+            } catch (error) {
+                showResult(`添加会议室失败: ${error.message}`, true);
+            }
+        }
+        
+        async function getRooms() {
+            try {
+                const headers = {};
+                if (token) {
+                    headers['Authorization'] = `Bearer ${token}`;
+                }
+                
+                const response = await fetch('/api/resources/?resource_type=meeting_room', {
+                    headers
+                });
+                
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.detail || error.message || '获取失败');
+                }
+                
+                const data = await response.json();
+                showResult(`获取成功！共 ${data.length} 个会议室:<br>${data.map(room => `- ${room.name} (${room.location})`).join('<br>')}`);
+            } catch (error) {
+                showResult(`获取会议室列表失败: ${error.message}`, true);
+            }
+        }
+        
+        // 页面加载时检查是否已登录
+        if (token) {
+            showResult(`已有Token: ${token.substring(0, 50)}...`);
+        }
+    </script>
+</body>
+</html>

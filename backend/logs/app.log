@@ -1,0 +1,46 @@
+2025-08-30 18:25:29,070 - app - INFO - [log_access] User admin retrieved log statistics
+2025-09-01 21:57:25,703 - app - INFO - [log_access] User admin retrieved log statistics
+2025-09-01 22:17:10,691 - app.services.smart_intent_service - WARNING - 无法从AI响应中提取JSON: 您好！我是智能预约助手，很高兴为您服务。我可以帮您预约会议室、安排访客来访或预约车位。请告诉我您需要什么帮助？
+2025-09-01 22:17:10,708 - app.api.smart_reservation - INFO - Intent analysis result: {'intent': 'unknown', 'confidence': 0.18, 'entities': {'time': {'hour': 2, 'minute': 0, 'relative_day': 1}, 'room_type': ['会议室']}, 'missing_information': ['visitor_info', 'time'], 'suggestions': ['取消预约', '确认预约', '修改时间'], 'natural_response': '', 'can_create_reservation': False}
+2025-09-02 11:46:19,899 - app.services.smart_intent_service - WARNING - 无法从AI响应中提取JSON: 您好！我是智能预约助手，很高兴为您服务。我可以帮您预约会议室、安排访客来访或预约车位。请告诉我您需要什么帮助？
+2025-09-02 11:46:19,917 - app.api.smart_reservation - INFO - Intent analysis result: {'intent': 'unknown', 'confidence': 0.2, 'entities': {'time': {'hour': 3, 'minute': 0, 'relative_day': 1}, 'room_type': ['会议室A']}, 'missing_information': ['visitor_info', 'time'], 'suggestions': ['取消预约', '修改时间', '确认预约'], 'natural_response': '', 'can_create_reservation': False}
+2025-09-02 11:46:30,826 - app.services.smart_intent_service - WARNING - 无法从AI响应中提取JSON: 您好！我是智能预约助手，很高兴为您服务。我可以帮您预约会议室、安排访客来访或预约车位。请告诉我您需要什么帮助？
+2025-09-02 11:46:30,827 - app.api.smart_reservation - INFO - Intent analysis result: {'intent': 'unknown', 'confidence': 0.4, 'entities': {'time': {'hour': 12, 'minute': 0, 'relative_day': 1}, 'room_type': ['会议室B']}, 'missing_information': ['visitor_info', 'time'], 'suggestions': ['取消预约', '修改时间', '确认预约'], 'natural_response': '', 'can_create_reservation': False}
+2025-09-02 11:48:00,814 - app - INFO - [log_access] User admin retrieved log statistics
+2025-09-02 11:56:39,319 - app - INFO - [log_access] User admin retrieved log statistics
+2025-09-02 16:40:43,452 - app.services.smart_intent_service - WARNING - 无法从AI响应中提取JSON: 您好！我是智能预约助手，很高兴为您服务。我可以帮您预约会议室、安排访客来访或预约车位。请告诉我您需要什么帮助？
+2025-09-02 16:40:43,453 - app.api.smart_reservation - INFO - Intent analysis result: {'intent': 'unknown', 'confidence': 0.0, 'entities': {'time': {'relative_day': 1}}, 'missing_information': ['visitor_info', 'time'], 'suggestions': ['确认预约', '修改时间', '取消预约'], 'natural_response': '', 'can_create_reservation': False}
+2025-09-02 16:41:26,311 - app.services.smart_intent_service - WARNING - 无法从AI响应中提取JSON: 您好！我是智能预约助手，很高兴为您服务。我可以帮您预约会议室、安排访客来访或预约车位。请告诉我您需要什么帮助？
+2025-09-02 16:41:26,328 - app.api.smart_reservation - INFO - Intent analysis result: {'intent': 'unknown', 'confidence': 0.42, 'entities': {'time': {'relative_day': 1}}, 'missing_information': ['visitor_info', 'time'], 'suggestions': ['预约车位', '我想预约会议室', '预约访客来访', '查看我的预约'], 'natural_response': '', 'can_create_reservation': False}
+2025-09-02 16:43:19,569 - app.services.smart_intent_service - WARNING - 无法从AI响应中提取JSON: 您好！我是智能预约助手，很高兴为您服务。我可以帮您预约会议室、安排访客来访或预约车位。请告诉我您需要什么帮助？
+2025-09-02 16:43:19,587 - app.api.smart_reservation - INFO - Intent analysis result: {'intent': 'unknown', 'confidence': 0.3, 'entities': {'time': {'relative_day': 1}}, 'missing_information': ['visitor_info', 'time'], 'suggestions': ['查看我的预约', '预约访客来访', '我想预约会议室', '预约车位'], 'natural_response': '', 'can_create_reservation': False}
+2025-09-02 16:44:05,043 - app.services.smart_intent_service - WARNING - 无法从AI响应中提取JSON: 您好！我是智能预约助手，很高兴为您服务。我可以帮您预约会议室、安排访客来访或预约车位。请告诉我您需要什么帮助？
+2025-09-02 16:44:05,062 - app.api.smart_reservation - INFO - Intent analysis result: {'intent': 'chat', 'confidence': 0.3, 'entities': {'time': {'relative_day': 1}}, 'missing_information': ['visitor_info', 'time'], 'suggestions': ['我想预约会议室', '预约访客来访', '预约车位', '查看我的预约'], 'natural_response': '', 'can_create_reservation': False}
+2025-09-02 16:44:56,175 - app.services.smart_intent_service - WARNING - 无法从AI响应中提取JSON: 您好！我是智能预约助手，很高兴为您服务。我可以帮您预约会议室、安排访客来访或预约车位。请告诉我您需要什么帮助？
+2025-09-02 16:44:56,194 - app.api.smart_reservation - INFO - Intent analysis result: {'intent': 'chat', 'confidence': 0.3, 'entities': {'time': {'relative_day': 1}}, 'missing_information': ['visitor_info', 'time'], 'suggestions': ['预约车位', '查看我的预约', '我想预约会议室', '预约访客来访'], 'natural_response': '', 'can_create_reservation': False}
+2025-09-02 16:46:06,056 - app.services.smart_intent_service - WARNING - 无法从AI响应中提取JSON: 您好！我是智能预约助手，很高兴为您服务。我可以帮您预约会议室、安排访客来访或预约车位。请告诉我您需要什么帮助？
+2025-09-02 16:46:06,057 - app.api.smart_reservation - INFO - Intent analysis result: {'intent': 'chat', 'confidence': 0.3, 'entities': {'time': {'relative_day': 1}}, 'missing_information': ['visitor_info', 'time'], 'suggestions': ['预约车位', '查看我的预约', '我想预约会议室', '预约访客来访'], 'natural_response': '', 'can_create_reservation': False}
+2025-09-02 16:47:07,776 - app.services.smart_intent_service - WARNING - 无法从AI响应中提取JSON: 您好！我是智能预约助手，很高兴为您服务。我可以帮您预约会议室、安排访客来访或预约车位。请告诉我您需要什么帮助？
+2025-09-02 16:47:07,794 - app.api.smart_reservation - INFO - Intent analysis result: {'intent': 'chat', 'confidence': 0.3, 'entities': {'time': {'relative_day': 1}}, 'missing_information': ['visitor_info', 'time'], 'suggestions': ['预约车位', '我想预约会议室', '预约访客来访', '查看我的预约'], 'natural_response': '', 'can_create_reservation': False}
+2025-09-02 16:47:18,999 - app.services.smart_intent_service - WARNING - 无法从AI响应中提取JSON: 您好！我是智能预约助手，很高兴为您服务。我可以帮您预约会议室、安排访客来访或预约车位。请告诉我您需要什么帮助？
+2025-09-02 16:47:19,000 - app.api.smart_reservation - INFO - Intent analysis result: {'intent': 'chat', 'confidence': 0.3, 'entities': {'time': {'relative_day': 1}}, 'missing_information': ['visitor_info', 'time'], 'suggestions': ['预约车位', '我想预约会议室', '预约访客来访', '查看我的预约'], 'natural_response': '', 'can_create_reservation': False}
+2025-09-02 16:47:35,345 - app.services.smart_intent_service - WARNING - 无法从AI响应中提取JSON: 您好！我是智能预约助手，很高兴为您服务。我可以帮您预约会议室、安排访客来访或预约车位。请告诉我您需要什么帮助？
+2025-09-02 16:47:35,346 - app.api.smart_reservation - INFO - Intent analysis result: {'intent': 'help', 'confidence': 0.43, 'entities': {}, 'missing_information': ['time', 'visitor_info'], 'suggestions': ['预约车位', '我想预约会议室', '预约访客来访', '查看我的预约'], 'natural_response': '', 'can_create_reservation': False}
+2025-09-02 16:48:57,417 - app.services.smart_intent_service - WARNING - 无法从AI响应中提取JSON: 您好！我是智能预约助手，很高兴为您服务。我可以帮您预约会议室、安排访客来访或预约车位。请告诉我您需要什么帮助？
+2025-09-02 16:48:57,417 - app.api.smart_reservation - INFO - Intent analysis result: {'intent': 'chat', 'confidence': 0.3, 'entities': {'time': {'relative_day': 0}}, 'missing_information': ['visitor_info', 'time'], 'suggestions': ['预约车位', '我想预约会议室', '预约访客来访', '查看我的预约'], 'natural_response': '', 'can_create_reservation': False}
+2025-09-02 16:49:06,944 - app.services.smart_intent_service - WARNING - 无法从AI响应中提取JSON: 您好！我是智能预约助手，很高兴为您服务。我可以帮您预约会议室、安排访客来访或预约车位。请告诉我您需要什么帮助？
+2025-09-02 16:49:06,944 - app.api.smart_reservation - INFO - Intent analysis result: {'intent': 'chat', 'confidence': 0.3, 'entities': {}, 'missing_information': ['time', 'visitor_info'], 'suggestions': ['预约车位', '我想预约会议室', '预约访客来访', '查看我的预约'], 'natural_response': '', 'can_create_reservation': False}
+2025-09-02 16:49:57,759 - app.services.smart_intent_service - WARNING - 无法从AI响应中提取JSON: 您好！我是智能预约助手，很高兴为您服务。我可以帮您预约会议室、安排访客来访或预约车位。请告诉我您需要什么帮助？
+2025-09-02 16:49:57,777 - app.api.smart_reservation - INFO - Intent analysis result: {'intent': 'chat', 'confidence': 0.3, 'entities': {'time': {'relative_day': 0}}, 'missing_information': ['visitor_info', 'time'], 'suggestions': ['查看我的预约', '预约访客来访', '我想预约会议室', '预约车位'], 'natural_response': '', 'can_create_reservation': False}
+2025-09-02 16:50:40,135 - app.services.smart_intent_service - ERROR - AI意图分析失败: 所有AI服务都不可用
+2025-09-02 16:50:40,153 - app.api.smart_reservation - INFO - Intent analysis result: {'intent': 'chat', 'confidence': 0.3, 'entities': {'time': {'relative_day': 0}}, 'missing_information': ['visitor_info', 'time'], 'suggestions': ['查看我的预约', '预约访客来访', '我想预约会议室', '预约车位'], 'natural_response': '', 'can_create_reservation': False}
+2025-09-02 16:50:40,153 - app.api.smart_reservation - WARNING - AI服务调用失败，使用默认回复: 所有AI服务都不可用
+2025-09-02 16:50:49,330 - app.services.smart_intent_service - ERROR - AI意图分析失败: 所有AI服务都不可用
+2025-09-02 16:50:49,330 - app.api.smart_reservation - INFO - Intent analysis result: {'intent': 'help', 'confidence': 0.43, 'entities': {}, 'missing_information': ['time', 'visitor_info'], 'suggestions': ['查看我的预约', '预约访客来访', '我想预约会议室', '预约车位'], 'natural_response': '', 'can_create_reservation': False}
+2025-09-02 16:50:49,331 - app.api.smart_reservation - WARNING - AI服务调用失败，使用默认回复: 所有AI服务都不可用
+2025-09-02 16:50:58,971 - app.services.smart_intent_service - ERROR - AI意图分析失败: 所有AI服务都不可用
+2025-09-02 16:50:58,971 - app.api.smart_reservation - INFO - Intent analysis result: {'intent': 'reservation', 'confidence': 0.35, 'entities': {'time': {'relative_day': 1}, 'room_type': ['会议室']}, 'missing_information': ['visitor_info', 'time'], 'suggestions': ['取消预约', '修改时间', '确认预约'], 'natural_response': '', 'can_create_reservation': False}
+2025-09-02 18:59:00,148 - app.api.smart_reservation - ERROR - siliconflow 连接测试失败: 
+2025-09-02 19:50:05,453 - app - INFO - [log_access] User admin retrieved log statistics
+2025-09-02 19:50:56,090 - app - INFO - [log_access] User admin retrieved log statistics
+2025-09-02 20:29:16,960 - app - INFO - [log_access] Retrieved 100 log entries

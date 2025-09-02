@@ -1,0 +1,1 @@
+{"response":"预约创建成功！预约编号：32","session_id":"8b120c38-2885-4ec2-af11-695c8bd6c2fa","intent":"reservation","entities":{"time":["12","10","明天","上午"],"room_type":["大"]},"suggestions":[],"reservation_created":false,"audio_url":null}

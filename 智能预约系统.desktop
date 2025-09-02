@@ -1,0 +1,16 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=智能预约系统
+Name[en]=Smart Reservation System
+Comment=基于AI的智能预约管理系统
+Comment[en]=AI-powered Smart Reservation Management System
+Exec=/home/cloudenlight/smart-reservation-system/启动智能预约系统.sh
+Icon=/home/cloudenlight/smart-reservation-system/icon.svg
+Path=/home/cloudenlight/smart-reservation-system
+Terminal=true
+StartupNotify=true
+Categories=Office;ProjectManagement;Development;
+Keywords=reservation;booking;meeting;room;AI;smart;
+MimeType=application/x-reservation;
+StartupWMClass=smart-reservation-system

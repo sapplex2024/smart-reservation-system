@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登录调试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+        }
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .log {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 15px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .success {
+            color: #28a745;
+        }
+        .error {
+            color: #dc3545;
+        }
+        .info {
+            color: #17a2b8;
+        }
+    </style>
+</head>
+<body>
+    <h1>登录调试工具</h1>
+    
+    <div class="section">
+        <h2>1. 测试后端连接</h2>
+        <button onclick="testBackendConnection()">测试后端连接</button>
+        <div id="connectionResult" class="log"></div>
+    </div>
+    
+    <div class="section">
+        <h2>2. 测试登录API</h2>
+        <div class="form-group">
+            <label for="username">用户名:</label>
+            <input type="text" id="username" value="admin">
+        </div>
+        <div class="form-group">
+            <label for="password">密码:</label>
+            <input type="password" id="password" value="admin123">
+        </div>
+        <button onclick="testLogin()">测试登录</button>
+        <button onclick="testLoginDirect()">直接测试后端</button>
+        <div id="loginResult" class="log"></div>
+    </div>
+    
+    <div class="section">
+        <h2>3. 测试认证状态</h2>
+        <button onclick="testAuthStatus()">检查认证状态</button>
+        <button onclick="clearToken()">清除Token</button>
+        <div id="authResult" class="log"></div>
+    </div>
+
+    <script>
+        function log(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type === 'error' ? 'error' : type === 'success' ? 'success' : 'info';
+            element.innerHTML += `<span class="${className}">[${timestamp}] ${message}</span>\n`;
+            element.scrollTop = element.scrollHeight;
+        }
+        
+        function clearLog(elementId) {
+            document.getElementById(elementId).innerHTML = '';
+        }
+        
+        async function testBackendConnection() {
+            clearLog('connectionResult');
+            log('connectionResult', '开始测试后端连接...');
+            
+            try {
+                // 测试直接访问后端
+                const response = await fetch('http://localhost:8000/docs');
+                log('connectionResult', `直接访问后端: ${response.status} ${response.statusText}`, response.ok ? 'success' : 'error');
+                
+                // 测试通过代理访问
+                const proxyResponse = await fetch('/api/auth/me');
+                log('connectionResult', `代理访问: ${proxyResponse.status} ${proxyResponse.statusText}`, 'info');
+                
+            } catch (error) {
+                log('connectionResult', `连接错误: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testLogin() {
+            clearLog('loginResult');
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            log('loginResult', `开始登录测试: ${username}`);
+            
+            try {
+                const formData = new FormData();
+                formData.append('username', username);
+                formData.append('password', password);
+                
+                log('loginResult', '发送登录请求到 /api/auth/login');
+                
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                log('loginResult', `响应状态: ${response.status} ${response.statusText}`);
+                log('loginResult', `响应头: ${JSON.stringify([...response.headers.entries()])}`);
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    log('loginResult', `错误响应: ${errorText}`, 'error');
+                    return;
+                }
+                
+                const data = await response.json();
+                log('loginResult', `登录成功!`, 'success');
+                log('loginResult', `用户信息: ${JSON.stringify(data.user, null, 2)}`);
+                log('loginResult', `Token: ${data.access_token.substring(0, 50)}...`);
+                
+                // 保存token
+                localStorage.setItem('token', data.access_token);
+                log('loginResult', 'Token已保存到localStorage', 'success');
+                
+            } catch (error) {
+                log('loginResult', `登录失败: ${error.message}`, 'error');
+                console.error('详细错误:', error);
+            }
+        }
+        
+        async function testLoginDirect() {
+            clearLog('loginResult');
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            log('loginResult', `直接测试后端登录: ${username}`);
+            
+            try {
+                const formData = new FormData();
+                formData.append('username', username);
+                formData.append('password', password);
+                
+                const response = await fetch('http://localhost:8000/api/auth/login', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                log('loginResult', `直接后端响应: ${response.status} ${response.statusText}`);
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    log('loginResult', `错误: ${errorText}`, 'error');
+                    return;
+                }
+                
+                const data = await response.json();
+                log('loginResult', `直接后端登录成功!`, 'success');
+                log('loginResult', `用户: ${data.user.full_name}`);
+                
+            } catch (error) {
+                log('loginResult', `直接后端登录失败: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testAuthStatus() {
+            clearLog('authResult');
+            const token = localStorage.getItem('token');
+            
+            if (!token) {
+                log('authResult', '没有找到Token', 'error');
+                return;
+            }
+            
+            log('authResult', `当前Token: ${token.substring(0, 50)}...`);
+            
+            try {
+                const response = await fetch('/api/auth/me', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                log('authResult', `认证检查响应: ${response.status} ${response.statusText}`);
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    log('authResult', `认证失败: ${errorText}`, 'error');
+                    return;
+                }
+                
+                const userData = await response.json();
+                log('authResult', `认证成功!`, 'success');
+                log('authResult', `当前用户: ${JSON.stringify(userData, null, 2)}`);
+                
+            } catch (error) {
+                log('authResult', `认证检查失败: ${error.message}`, 'error');
+            }
+        }
+        
+        function clearToken() {
+            localStorage.removeItem('token');
+            log('authResult', 'Token已清除', 'info');
+        }
+        
+        // 页面加载时显示当前状态
+        window.onload = function() {
+            const token = localStorage.getItem('token');
+            if (token) {
+                log('authResult', `页面加载时发现Token: ${token.substring(0, 50)}...`);
+            } else {
+                log('authResult', '页面加载时未发现Token');
+            }
+        };
+    </script>
+</body>
+</html>

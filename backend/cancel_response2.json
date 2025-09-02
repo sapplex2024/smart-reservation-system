@@ -1,0 +1,1 @@
+{"response":"请提供要取消的预约编号，或者说\"取消最近的预约\"","session_id":"507c48a7-bcce-4a49-95db-f8725b697104","intent":"cancel","entities":{},"suggestions":["取消最近的预约","查看我的预约"],"reservation_created":false,"audio_url":null}

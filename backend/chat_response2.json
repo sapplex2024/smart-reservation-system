@@ -1,0 +1,1 @@
+{"response":"我是预约助手，无法查询天气信息。不过我可以帮您预约会议室哦！","session_id":"8760310c-257f-418f-a8d3-bea64b874845","intent":"chat","entities":{"time":["今天"]},"suggestions":["预约会议室","查看我的预约","帮助"],"reservation_created":false,"audio_url":null}
