@@ -233,7 +233,7 @@ export function useReservations() {
   const fetchStats = async (): Promise<ReservationStats | null> => {
     try {
       // 获取当前用户的所有预约
-      const result = await fetchReservations(1, 1000) // 获取大量数据用于统计
+      const result = await fetchReservations(1, 100) // 获取数据用于统计
       if (!result) return null
 
       const allReservations = result.items

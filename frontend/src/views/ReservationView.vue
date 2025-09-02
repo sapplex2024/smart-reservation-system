@@ -92,9 +92,9 @@
             @change="handleFilter"
           >
             <el-option label="全部" value="" />
-            <el-option label="会议室" value="MEETING" />
-            <el-option label="访客" value="VISITOR" />
-            <el-option label="车辆入园" value="VEHICLE" />
+            <el-option label="会议室" value="meeting" />
+            <el-option label="访客" value="visitor" />
+            <el-option label="车辆入园" value="vehicle" />
           </el-select>
           <el-select
             v-model="filterStatus"
@@ -104,10 +104,10 @@
             @change="handleFilter"
           >
             <el-option label="全部" value="" />
-            <el-option label="待审批" value="PENDING" />
-            <el-option label="已批准" value="APPROVED" />
-            <el-option label="已完成" value="COMPLETED" />
-            <el-option label="已取消" value="CANCELLED" />
+            <el-option label="待审批" value="pending" />
+            <el-option label="已批准" value="approved" />
+            <el-option label="已完成" value="completed" />
+            <el-option label="已取消" value="cancelled" />
           </el-select>
           <el-date-picker
             v-model="dateRange"
@@ -213,9 +213,9 @@
       >
         <el-form-item label="预约类型" prop="type">
           <el-select v-model="createForm.type" placeholder="请选择预约类型">
-            <el-option label="会议室" value="MEETING" />
-            <el-option label="访客" value="VISITOR" />
-            <el-option label="车辆入园" value="VEHICLE" />
+            <el-option label="会议室" value="meeting" />
+            <el-option label="访客" value="visitor" />
+            <el-option label="车辆入园" value="vehicle" />
           </el-select>
         </el-form-item>
         
@@ -429,7 +429,7 @@ const refreshData = async () => {
 
 const loadReservations = async () => {
   try {
-    await fetchReservations(1, 1000) // 获取所有数据用于前端筛选
+    await fetchReservations(1, 100) // 获取数据用于前端筛选
   } catch (error) {
     console.error('加载预约数据失败:', error)
   }
