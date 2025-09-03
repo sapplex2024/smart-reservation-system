@@ -4,6 +4,7 @@ import { useAuthStore } from '@/stores/auth'
 
 export interface Reservation {
   id: number
+  reservation_number?: string  // 添加预约编号字段
   type: 'meeting' | 'visitor' | 'vehicle'
   title: string
   description?: string
@@ -119,7 +120,7 @@ export function useReservations() {
     try {
       loading.value = true
 
-      const response = await fetch(`/api/reservations/${id}/`, {
+      const response = await fetch(`/api/reservations/${id}`, {
         headers: {
           'Content-Type': 'application/json'
         }
@@ -206,11 +207,10 @@ export function useReservations() {
       loading.value = true
 
       const response = await fetch(`/api/reservations/${id}/`, {
-        method: 'PUT',
+        method: 'DELETE',
         headers: {
           'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ status: 'cancelled' })
+        }
       })
 
       if (!response.ok) {
@@ -267,6 +267,12 @@ export function useReservations() {
 
   // 格式化预约状态标签
   const formatStatusLabel = (status: string): string => {
+    // 如果后端已经返回中文状态，直接返回
+    if (['待审批', '已批准', '已拒绝', '已取消', '已完成'].includes(status)) {
+      return status
+    }
+    
+    // 兼容英文状态的映射（备用）
     const labels = {
       'pending': '待审批',
       'approved': '已批准',
@@ -289,6 +295,21 @@ export function useReservations() {
 
   // 获取状态标签样式
   const getStatusTagType = (status: string): string => {
+    // 支持中文状态
+    const chineseTypes = {
+      '待审批': 'warning',
+      '已批准': 'success',
+      '已拒绝': 'danger',
+      '已取消': 'info',
+      '已完成': 'success'
+    }
+    
+    // 如果是中文状态，直接返回对应样式
+    if (chineseTypes[status as keyof typeof chineseTypes]) {
+      return chineseTypes[status as keyof typeof chineseTypes]
+    }
+    
+    // 兼容英文状态的映射（备用）
     const types = {
       'pending': 'warning',
       'approved': 'success',

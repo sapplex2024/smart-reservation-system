@@ -288,8 +288,6 @@ const quickActions = [
 const smartSuggestions = ref([
   '我要预约明天上午10点的会议室',
   '查看我今天的预约',
-  '取消下午3点的预约',
-  '预约访客张三明天来访',
   '帮助'
 ])
 

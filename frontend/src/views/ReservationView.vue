@@ -134,7 +134,7 @@
         style="width: 100%"
       >
         <el-table-column type="selection" width="55" />
-        <el-table-column prop="id" label="预约编号" width="120" />
+        <el-table-column prop="reservation_number" label="预约编号" width="120" />
         <el-table-column prop="title" label="预约标题" min-width="150" />
         <el-table-column prop="type" label="预约类型" width="100">
           <template #default="{ row }">
@@ -272,7 +272,7 @@
       <div v-if="selectedReservation" class="detail-content">
         <div class="detail-item">
           <span class="detail-label">预约编号：</span>
-          <span class="detail-value">{{ selectedReservation.id }}</span>
+          <span class="detail-value">{{ selectedReservation.reservation_number || selectedReservation.id }}</span>
         </div>
         <div class="detail-item">
           <span class="detail-label">预约类型：</span>
@@ -297,6 +297,10 @@
           <el-tag :type="getStatusTagType(selectedReservation.status)" size="small">
             {{ formatStatusLabel(selectedReservation.status) }}
           </el-tag>
+        </div>
+        <div v-if="selectedReservation.resource_name" class="detail-item">
+          <span class="detail-label">预约资源：</span>
+          <span class="detail-value">{{ selectedReservation.resource_name }}</span>
         </div>
         <div v-if="selectedReservation.description" class="detail-item">
           <span class="detail-label">描述：</span>

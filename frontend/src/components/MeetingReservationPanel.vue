@@ -378,21 +378,44 @@ const getReservationTooltip = (roomId: number, hour: number) => {
 }
 
 const getStatusColor = (status: string) => {
+  // 支持中文状态
+  const chineseColorMap: Record<string, string> = {
+    '待审批': 'warning',
+    '已批准': 'success',
+    '已拒绝': 'danger',
+    '已取消': 'info',
+    '已完成': 'success'
+  }
+  
+  // 如果是中文状态，直接返回对应颜色
+  if (chineseColorMap[status]) {
+    return chineseColorMap[status]
+  }
+  
+  // 兼容英文状态的映射（备用）
   const colorMap: Record<string, string> = {
     'pending': 'warning',
-    'confirmed': 'success',
-    'completed': 'info',
-    'cancelled': 'danger'
+    'approved': 'success',
+    'rejected': 'danger',
+    'cancelled': 'info',
+    'completed': 'success'
   }
   return colorMap[status] || 'info'
 }
 
 const getStatusLabel = (status: string) => {
+  // 如果后端已经返回中文状态，直接返回
+  if (['待审批', '已批准', '已拒绝', '已取消', '已完成'].includes(status)) {
+    return status
+  }
+  
+  // 兼容英文状态的映射（备用）
   const labelMap: Record<string, string> = {
-    'pending': '待确认',
-    'confirmed': '已确认',
-    'completed': '已完成',
-    'cancelled': '已取消'
+    'pending': '待审批',
+    'approved': '已批准',
+    'rejected': '已拒绝',
+    'cancelled': '已取消',
+    'completed': '已完成'
   }
   return labelMap[status] || status
 }

@@ -216,8 +216,8 @@ class SettingsService:
             uptime = datetime.now().timestamp() - boot_time
             
             return {
-                "version": "1.0.0",
-                "build_time": "2024-01-20 10:30:00",
+                "version": "0.3.0",
+                "build_time": "2025-01-03 21:30:00",
                 "uptime": int(uptime),
                 "platform": platform.system(),
                 "python_version": platform.python_version(),
@@ -235,8 +235,8 @@ class SettingsService:
         except Exception as e:
             print(f"获取系统信息失败: {e}")
             return {
-                "version": "1.0.0",
-                "build_time": "2024-01-20 10:30:00",
+                "version": "0.3.0",
+                "build_time": "2025-01-03 21:30:00",
                 "uptime": 0,
                 "platform": "Unknown",
                 "python_version": "Unknown",
