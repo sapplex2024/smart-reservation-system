@@ -1,0 +1,46 @@
+services:
+  # 后端开发服务
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: smart-reservation-backend-dev
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=sqlite:///./reservations.db
+      - SECRET_KEY=dev-secret-key
+      - ALGORITHM=HS256
+      - ACCESS_TOKEN_EXPIRE_MINUTES=30
+      - DEVELOPMENT=true
+      - DEBUG=true
+      - REDIS_URL=redis://redis:6379
+    volumes:
+      - ./backend:/app
+      - ./backend/reservations.db:/app/reservations.db
+      - ./backend/logs:/app/logs
+    networks:
+      - smart-reservation-network
+    restart: unless-stopped
+    depends_on:
+      - redis
+    command: python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  # Redis服务
+  redis:
+    image: redis:7-alpine
+    container_name: smart-reservation-redis-dev
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - smart-reservation-network
+    restart: unless-stopped
+
+networks:
+  smart-reservation-network:
+    driver: bridge
+
+volumes:
+  redis_data:

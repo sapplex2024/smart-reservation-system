@@ -44,3 +44,15 @@
 2025-09-02 19:50:05,453 - app - INFO - [log_access] User admin retrieved log statistics
 2025-09-02 19:50:56,090 - app - INFO - [log_access] User admin retrieved log statistics
 2025-09-02 20:29:16,960 - app - INFO - [log_access] Retrieved 100 log entries
+2025-09-02 21:42:30,285 - app.services.smart_intent_service - ERROR - AI意图分析失败: 所有AI服务都不可用
+2025-09-02 21:42:30,290 - app.services.smart_intent_service - ERROR - 智能意图分析失败: object dict can't be used in 'await' expression
+2025-09-02 21:42:30,290 - app.api.smart_reservation - ERROR - 智能预约对话处理失败: object dict can't be used in 'await' expression
+2025-09-02 21:43:20,747 - app.services.smart_intent_service - ERROR - AI意图分析失败: 所有AI服务都不可用
+2025-09-02 21:43:20,751 - app.services.smart_intent_service - ERROR - 智能意图分析失败: 'list' object has no attribute 'get'
+2025-09-02 21:43:20,751 - app.api.smart_reservation - INFO - Intent analysis result: {'intent': 'reservation', 'confidence': 0.8, 'entities': {'time': ['2', '下午', '明天']}, 'scores': {'reservation': 0.8, 'chat': 0.0, 'query': 0.0, 'cancel': 0.0, 'modify': 0.0, 'help': 0.0}, 'message': '我想预约明天下午2点的会议室'}
+2025-09-02 21:43:30,587 - app.services.smart_intent_service - ERROR - AI意图分析失败: 所有AI服务都不可用
+2025-09-02 21:43:30,587 - app.services.smart_intent_service - ERROR - 智能意图分析失败: 'list' object has no attribute 'get'
+2025-09-02 21:43:30,587 - app.api.smart_reservation - INFO - Intent analysis result: {'intent': 'reservation', 'confidence': 0.8, 'entities': {'time': ['4', '2', '下午', '明天'], 'room_type': ['大', '0']}, 'scores': {'reservation': 0.8, 'chat': 0.0, 'query': 0.0, 'cancel': 0.0, 'modify': 0.0, 'help': 0.0}, 'message': '我要预约明天下午2点到4点的大会议室，有10个人参加'}
+2025-09-02 21:43:41,051 - app.services.smart_intent_service - ERROR - AI意图分析失败: 所有AI服务都不可用
+2025-09-02 21:43:41,051 - app.api.smart_reservation - INFO - Intent analysis result: {'intent': 'chat', 'confidence': 0.6, 'entities': {}, 'missing_information': ['time', 'visitor_info'], 'suggestions': [], 'natural_response': '', 'can_create_reservation': False}
+2025-09-02 21:43:41,051 - app.api.smart_reservation - WARNING - AI服务调用失败，使用默认回复: 所有AI服务都不可用

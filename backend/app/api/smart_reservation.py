@@ -389,14 +389,25 @@ async def smart_reservation_chat(
                 reservation_data = intent_result.get("reservation_data", {})
                 reservation_data["user_id"] = current_user.id
                 
-                reservation_result = await reservation_service.process_reservation_request(
-                    reservation_data
-                )
+                # 获取数据库会话
+                from app.core.database import get_db
+                db = next(get_db())
                 
-                if reservation_result.get("success"):
+                try:
+                    reservation_result = await reservation_service.process_reservation_request(
+                        message=request.message,
+                        entities=intent_result.get("entities", {}),
+                        user_id=current_user.id,
+                        session_context=conversation_context,
+                        db=db
+                    )
+                finally:
+                    db.close()
+                
+                if reservation_result.get("created"):
                     return SmartReservationResponse(
                         success=True,
-                        message=f"预约成功！{reservation_result.get('message', '')}",
+                        message=f"预约成功！{reservation_result.get('response', '')}",
                         reservation_completed=True,
                         reservation_data=reservation_result.get("data"),
                         generate_speech=request.use_voice,
@@ -404,8 +415,8 @@ async def smart_reservation_chat(
                     )
                 else:
                     return SmartReservationResponse(
-                        success=True,
-                        message=f"预约失败：{reservation_result.get('message', '未知错误')}",
+                        success=False,
+                        message=f"预约失败：{reservation_result.get('response', '未知错误')}",
                         generate_speech=request.use_voice,
                         confidence=intent_result.get("confidence", 0.8)
                     )

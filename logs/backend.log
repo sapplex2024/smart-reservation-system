@@ -1,51 +1,16 @@
 INFO:     Will watch for changes in these directories: ['/home/cloudenlight/smart-reservation-system/backend']
 INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
-INFO:     Started reloader process [194506] using StatReload
-Process SpawnProcess-1:
-Traceback (most recent call last):
-  File "/home/cloudenlight/miniconda3/lib/python3.13/multiprocessing/process.py", line 313, in _bootstrap
-    self.run()
-    ~~~~~~~~^^
-  File "/home/cloudenlight/miniconda3/lib/python3.13/multiprocessing/process.py", line 108, in run
-    self._target(*self._args, **self._kwargs)
-    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/cloudenlight/miniconda3/lib/python3.13/site-packages/uvicorn/_subprocess.py", line 80, in subprocess_started
-    target(sockets=sockets)
-    ~~~~~~^^^^^^^^^^^^^^^^^
-  File "/home/cloudenlight/miniconda3/lib/python3.13/site-packages/uvicorn/server.py", line 67, in run
-    return asyncio.run(self.serve(sockets=sockets))
-           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/cloudenlight/miniconda3/lib/python3.13/asyncio/runners.py", line 195, in run
-    return runner.run(main)
-           ~~~~~~~~~~^^^^^^
-  File "/home/cloudenlight/miniconda3/lib/python3.13/asyncio/runners.py", line 118, in run
-    return self._loop.run_until_complete(task)
-           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
-  File "/home/cloudenlight/miniconda3/lib/python3.13/asyncio/base_events.py", line 725, in run_until_complete
-    return future.result()
-           ~~~~~~~~~~~~~^^
-  File "/home/cloudenlight/miniconda3/lib/python3.13/site-packages/uvicorn/server.py", line 71, in serve
-    await self._serve(sockets)
-  File "/home/cloudenlight/miniconda3/lib/python3.13/site-packages/uvicorn/server.py", line 78, in _serve
-    config.load()
-    ~~~~~~~~~~~^^
-  File "/home/cloudenlight/miniconda3/lib/python3.13/site-packages/uvicorn/config.py", line 436, in load
-    self.loaded_app = import_from_string(self.app)
-                      ~~~~~~~~~~~~~~~~~~^^^^^^^^^^
-  File "/home/cloudenlight/miniconda3/lib/python3.13/site-packages/uvicorn/importer.py", line 22, in import_from_string
-    raise exc from None
-  File "/home/cloudenlight/miniconda3/lib/python3.13/site-packages/uvicorn/importer.py", line 19, in import_from_string
-    module = importlib.import_module(module_str)
-  File "/home/cloudenlight/miniconda3/lib/python3.13/importlib/__init__.py", line 88, in import_module
-    return _bootstrap._gcd_import(name[level:], package, level)
-           ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
-  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
-  File "<frozen importlib._bootstrap>", line 1331, in _find_and_load_unlocked
-  File "<frozen importlib._bootstrap>", line 935, in _load_unlocked
-  File "<frozen importlib._bootstrap_external>", line 1026, in exec_module
-  File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
-  File "/home/cloudenlight/smart-reservation-system/backend/app/main.py", line 5, in <module>
-    from sqlalchemy.orm import Session
-ModuleNotFoundError: No module named 'sqlalchemy'
-INFO:     Stopping reloader process [194506]
+INFO:     Started reloader process [3858455] using WatchFiles
+INFO:     Started server process [3858468]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+智能预约系统 API 启动成功
+API文档地址: http://localhost:8000/docs
+2025-09-03 09:51:54,718 - access - INFO - GET /health - 200 - 127.0.0.1
+INFO:     127.0.0.1:44656 - "GET /health HTTP/1.1" 200 OK
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [3858468]
+智能预约系统 API 关闭
+INFO:     Stopping reloader process [3858455]

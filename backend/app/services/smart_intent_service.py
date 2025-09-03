@@ -27,7 +27,7 @@ class SmartIntentService:
             ai_analysis = await self._ai_intent_analysis(message, context)
             
             # 2. 使用规则引擎进行实体提取
-            rule_analysis = await self.intent_service.analyze_intent(message)
+            rule_analysis = self.intent_service.analyze_intent(message)
             
             # 3. 融合分析结果
             merged_result = self._merge_analysis_results(ai_analysis, rule_analysis)
@@ -40,7 +40,7 @@ class SmartIntentService:
         except Exception as e:
             logger.error(f"智能意图分析失败: {e}")
             # 降级到规则引擎
-            return await self.intent_service.analyze_intent(message)
+            return self.intent_service.analyze_intent(message)
     
     async def _ai_intent_analysis(
         self, 
