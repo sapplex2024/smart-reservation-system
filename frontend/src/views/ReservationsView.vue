@@ -15,8 +15,6 @@
         <el-select v-model="filterType" placeholder="预约类型" clearable>
           <el-option label="全部" value="" />
           <el-option label="会议" value="meeting" />
-          <el-option label="访客" value="visitor" />
-          <el-option label="停车" value="parking" />
         </el-select>
         
         <el-select v-model="filterStatus" placeholder="状态" clearable>
@@ -99,8 +97,6 @@
         <el-form-item label="预约类型">
           <el-select v-model="newReservation.type" placeholder="请选择预约类型">
             <el-option label="会议" value="meeting" />
-            <el-option label="访客" value="visitor" />
-            <el-option label="停车" value="parking" />
           </el-select>
         </el-form-item>
         

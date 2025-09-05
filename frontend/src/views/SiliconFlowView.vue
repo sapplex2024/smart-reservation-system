@@ -312,7 +312,7 @@
 import { ref, onMounted, reactive } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
-  Setting, Lightning, Refresh, CloudOffline, Close,
+  Setting, Lightning, Refresh, Cloudy, Close,
   SuccessFilled, CircleCloseFilled, ChatDotRound,
   Document, Files, QuestionFilled
 } from '@element-plus/icons-vue'

@@ -7,7 +7,7 @@ from app.models.database import get_db, User
 from app.services.notification_service import NotificationService
 from app.api.auth import get_current_user
 
-router = APIRouter(prefix="/notifications", tags=["notifications"])
+router = APIRouter(tags=["notifications"])
 notification_service = NotificationService()
 
 @router.get("/", response_model=List[Dict[str, Any]])

@@ -83,7 +83,7 @@
                     type="text" 
                     size="small" 
                     :icon="isSpeaking ? VideoPause : VideoPlay" 
-                    @click="speak(message.content)"
+                    @click="speak({ text: message.content })"
                     class="action-btn"
                   />
                 </el-tooltip>
@@ -122,8 +122,6 @@
           :disabled="isLoading"
           :suggestions="smartSuggestions"
           @message-sent="handleUnifiedMessage"
-          @voice-start="handleVoiceStart"
-          @voice-end="handleVoiceEnd"
           @suggestion-applied="handleSuggestionApplied"
         />
       </div>
@@ -310,7 +308,7 @@ const sendMessage = async () => {
   try {
     const response = await chatStore.sendMessage(messageText, {
       voiceEnabled: autoPlayVoice.value,
-      voiceProvider: 'qwen', // 可以从设置中获取
+      voiceProvider: 'xunfei', // 可以从设置中获取
       voiceModel: undefined
     })
     
@@ -333,13 +331,13 @@ const sendMessage = async () => {
           console.error('音频播放失败:', error)
           // 回退到本地TTS
           setTimeout(() => {
-            speak(response.response)
+            speak({ text: response.response })
           }, 500)
         })
       } else {
         // 使用本地TTS
         setTimeout(() => {
-          speak(response.response)
+          speak({ text: response.response })
         }, 500)
       }
     }
@@ -397,15 +395,7 @@ const handleVoiceMessage = (message: string) => {
   sendMessage()
 }
 
-const handleVoiceStart = () => {
-  // 语音开始时的处理逻辑
-  console.log('语音识别开始')
-}
 
-const handleVoiceEnd = () => {
-  // 语音结束时的处理逻辑
-  console.log('语音识别结束')
-}
 
 // 智能语音消息处理
 const handleSmartVoiceMessage = (data: any) => {
@@ -465,7 +455,7 @@ const handleUnifiedMessage = async (message: string) => {
   try {
     const response = await chatStore.sendMessage(message, {
       voiceEnabled: autoPlayVoice.value,
-      voiceProvider: 'qwen',
+      voiceProvider: 'xunfei',
       voiceModel: undefined
     })
     
@@ -486,12 +476,12 @@ const handleUnifiedMessage = async (message: string) => {
         audio.play().catch(error => {
           console.error('音频播放失败:', error)
           setTimeout(() => {
-            speak(response.response)
+            speak({ text: response.response })
           }, 500)
         })
       } else {
         setTimeout(() => {
-          speak(response.response)
+          speak({ text: response.response })
         }, 500)
       }
     }
@@ -511,7 +501,7 @@ const handleSuggestionApplied = (suggestion: string) => {
 // 手动播放最新回复
 const playLastMessage = () => {
   if (lastAssistantMessage.value) {
-    speak(lastAssistantMessage.value)
+    speak({ text: lastAssistantMessage.value })
   }
 }
 
@@ -563,7 +553,7 @@ onMounted(() => {
 <style scoped>
 .chat-container {
   display: flex;
-  height: 100vh;
+  height: calc(100vh - 60px);
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   position: relative;
   overflow: hidden;

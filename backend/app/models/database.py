@@ -6,18 +6,26 @@ import enum
 
 from app.core.config import settings
 
-# Create database engine
-engine = create_engine(settings.DATABASE_URL)
+# Create database engine with optimized connection pool
+engine = create_engine(
+    settings.DATABASE_URL,
+    pool_size=10,  # 连接池大小
+    max_overflow=20,  # 最大溢出连接数
+    pool_timeout=30,  # 连接超时时间
+    pool_recycle=3600,  # 连接回收时间（1小时）
+    pool_pre_ping=True,  # 连接前ping检查
+    echo=False  # 生产环境关闭SQL日志
+)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 Base = declarative_base()
 
 # Enums
 class UserRole(str, enum.Enum):
-    ADMIN = "admin"
-    MANAGER = "manager"
-    EMPLOYEE = "employee"
-    VISITOR = "visitor"
+    ADMIN = "ADMIN"
+    MANAGER = "MANAGER"
+    EMPLOYEE = "EMPLOYEE"
+    VISITOR = "VISITOR"
 
 class ReservationType(str, enum.Enum):
     MEETING = "meeting"
@@ -47,6 +55,8 @@ class User(Base):
     role = Column(Enum(UserRole), default=UserRole.EMPLOYEE)
     is_active = Column(Boolean, default=True)
     permissions = Column(JSON, default={})
+    company_name = Column(String(200), nullable=True)  # 公司名称
+    phone = Column(String(20), nullable=True)  # 联系电话
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
@@ -75,6 +85,7 @@ class Reservation(Base):
     __tablename__ = "reservations"
     
     id = Column(Integer, primary_key=True, index=True)
+    reservation_number = Column(String(20), unique=True, index=True, nullable=False)  # 自定义预约编号，格式：年月日期+编号
     type = Column(Enum(ReservationType), nullable=False)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     resource_id = Column(Integer, ForeignKey("resources.id"), nullable=True)

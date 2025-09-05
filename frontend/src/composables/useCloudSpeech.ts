@@ -1,123 +1,171 @@
 import { ref, computed } from 'vue'
-import { ElMessage } from 'element-plus'
-import axios from 'axios'
+import { useSettings } from './useSettings'
 
-// 阿里云语音服务接口
-export interface CloudVoice {
-  id: string
-  name: string
-  gender: 'male' | 'female'
-  language: string
-  provider?: string
-  model?: string
-  full_id?: string
+export interface CloudSpeechConfig {
+  provider: 'xunfei' | 'baidu' | 'tencent'
+  appId?: string
+  apiKey?: string
+  apiSecret?: string
+  wsUrl?: string
 }
 
-export interface VoiceProvider {
+export interface VoiceMessage {
   id: string
-  name: string
-  description: string
-  available: boolean
+  type: 'user' | 'assistant'
+  content: string
+  timestamp: number
+  audioUrl?: string
 }
 
 export function useCloudSpeech() {
-  const isListening = ref(false)
-  const isSpeaking = ref(false)
-  const isSupported = ref(true)
-  const transcript = ref('')
-  const availableVoices = ref<CloudVoice[]>([])
-  const selectedVoice = ref('zhixiaoxia')
-  const availableProviders = ref<VoiceProvider[]>([])
-  const selectedProvider = ref('qwen')
-  const selectedModel = ref('')
+  const { settings } = useSettings()
   
+  const isConnected = ref(false)
+  const isRecording = ref(false)
+  const isPlaying = ref(false)
+  const error = ref<string | null>(null)
+  const transcript = ref('')
+  const messages = ref<VoiceMessage[]>([])
+  
+  let websocket: WebSocket | null = null
   let mediaRecorder: MediaRecorder | null = null
   let audioChunks: Blob[] = []
-  let currentAudio: HTMLAudioElement | null = null
   
-  const API_BASE_URL = 'http://localhost:8000/api/voice'
+  // 当前配置
+  const config = computed<CloudSpeechConfig>(() => ({
+    provider: (settings as any).voice?.provider || 'xunfei',
+    appId: (settings as any).voice?.xunfei?.appId || '',
+    apiKey: (settings as any).voice?.xunfei?.apiKey || '',
+    apiSecret: (settings as any).voice?.xunfei?.apiSecret || '',
+    wsUrl: 'ws://localhost:8000/api/voice/chat'
+  }))
   
-  // 加载语音提供商列表
-  const loadProviders = async () => {
+  // 连接WebSocket
+  const connect = async () => {
     try {
-      const response = await axios.get(`${API_BASE_URL}/providers`)
-      availableProviders.value = response.data.providers || []
-      
-      // 选择第一个可用的提供商
-      const availableProvider = availableProviders.value.find(p => p.available)
-      if (availableProvider && !availableProviders.value.find(p => p.id === selectedProvider.value && p.available)) {
-        selectedProvider.value = availableProvider.id
+      if (websocket?.readyState === WebSocket.OPEN) {
+        return true
       }
       
-    } catch (error) {
-      console.error('加载语音提供商失败:', error)
-      ElMessage.error('加载语音提供商失败，请检查后端服务是否启动')
-    }
-  }
-  
-  // 加载可用语音列表
-  const loadVoices = async (provider?: string) => {
-    try {
-      const targetProvider = provider || selectedProvider.value
-      const response = await axios.get(`${API_BASE_URL}/voices`, {
-        params: targetProvider ? { provider: targetProvider } : {}
-      })
-      availableVoices.value = response.data.voices || []
+      websocket = new WebSocket(config.value.wsUrl!)
       
-      // 如果当前选择的语音不在列表中，选择第一个可用的
-      if (availableVoices.value.length > 0 && 
-          !availableVoices.value.find(v => v.id === selectedVoice.value)) {
-        selectedVoice.value = availableVoices.value[0].id
+      websocket.onopen = () => {
+        isConnected.value = true
+        error.value = null
+        console.log('语音聊天WebSocket连接成功')
       }
       
-      // 设置默认模型（硅基流动）
-      if (targetProvider === 'siliconflow' && availableVoices.value.length > 0) {
-        const firstVoice = availableVoices.value[0]
-        if (firstVoice.model && !selectedModel.value) {
-          selectedModel.value = firstVoice.model
+      websocket.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data)
+          handleWebSocketMessage(data)
+        } catch (err) {
+          console.error('解析WebSocket消息失败:', err)
         }
       }
       
-    } catch (error) {
-      console.error('加载语音列表失败:', error)
-      ElMessage.error('加载语音列表失败，请检查后端服务是否启动')
-    }
-  }
-  
-  // 测试API连接
-  const testConnection = async (provider?: string) => {
-    try {
-      const targetProvider = provider || selectedProvider.value
-      const response = await axios.post(`${API_BASE_URL}/test-connection`, {
-        provider: targetProvider
-      })
-      
-      if (response.data.success) {
-        ElMessage.success(`${targetProvider === 'siliconflow' ? '硅基流动' : '通义千问'}API连接成功`)
-      } else {
-        ElMessage.error(response.data.message || 'API连接失败')
+      websocket.onerror = (event) => {
+        error.value = '语音服务连接错误'
+        console.error('WebSocket错误:', event)
       }
       
-      return response.data.success
-    } catch (error) {
-      console.error('API连接测试失败:', error)
-      ElMessage.error('API连接测试失败，请检查后端服务是否启动')
+      websocket.onclose = () => {
+        isConnected.value = false
+        console.log('语音聊天WebSocket连接关闭')
+      }
+      
+      return true
+    } catch (err) {
+      error.value = '连接语音服务失败'
+      console.error('连接WebSocket失败:', err)
       return false
     }
   }
   
-  // 开始录音
-  const startListening = async () => {
-    if (isListening.value) {
-      stopListening()
-      return
+  // 处理WebSocket消息
+  const handleWebSocketMessage = (data: any) => {
+    switch (data.type) {
+      case 'transcript':
+        transcript.value = data.text
+        break
+        
+      case 'final_transcript':
+        if (data.text) {
+          addMessage('user', data.text)
+          transcript.value = ''
+        }
+        break
+        
+      case 'ai_response':
+        if (data.text) {
+          addMessage('assistant', data.text)
+        }
+        break
+        
+      case 'audio_response':
+        if (data.audio_url) {
+          playAudio(data.audio_url)
+        }
+        break
+        
+      case 'error':
+        error.value = data.message || '语音处理错误'
+        break
+        
+      default:
+        console.log('未知消息类型:', data.type)
     }
-    
+  }
+  
+  // 添加消息
+  const addMessage = (type: 'user' | 'assistant', content: string, audioUrl?: string) => {
+    const message: VoiceMessage = {
+      id: Date.now().toString(),
+      type,
+      content,
+      timestamp: Date.now(),
+      audioUrl
+    }
+    messages.value.push(message)
+  }
+  
+  // 开始录音
+  const startRecording = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      if (!isConnected.value && !(await connect())) {
+        return false
+      }
+      
+      // 发送开始录音信号
+      if (websocket?.readyState === WebSocket.OPEN) {
+        websocket.send(JSON.stringify({
+          type: 'start_recording',
+          config: {
+            provider: config.value.provider,
+            appId: config.value.appId,
+            apiKey: config.value.apiKey,
+            apiSecret: config.value.apiSecret
+          }
+        }))
+      }
+      
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        audio: {
+          sampleRate: 16000,
+          channelCount: 1,
+          echoCancellation: true,
+          noiseSuppression: true
+        }
+      })
+      
+      // 尝试使用WAV格式，如果不支持则使用WebM
+      let mimeType = 'audio/wav'
+      if (!MediaRecorder.isTypeSupported(mimeType)) {
+        mimeType = 'audio/webm;codecs=opus'
+      }
       
       mediaRecorder = new MediaRecorder(stream, {
-        mimeType: 'audio/webm;codecs=opus'
+        mimeType: mimeType
       })
       
       audioChunks = []
@@ -125,229 +173,144 @@ export function useCloudSpeech() {
       mediaRecorder.ondataavailable = (event) => {
         if (event.data.size > 0) {
           audioChunks.push(event.data)
+          console.log(`音频数据块: ${event.data.size}字节`)
         }
       }
       
-      mediaRecorder.onstop = async () => {
-        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' })
-        await processAudioForASR(audioBlob)
-        
-        // 停止所有音轨
-        stream.getTracks().forEach(track => track.stop())
+      mediaRecorder.onstart = () => {
+        isRecording.value = true
+        error.value = null
       }
       
-      mediaRecorder.start()
-      isListening.value = true
-      transcript.value = '正在录音...'
+      mediaRecorder.onstop = async () => {
+        isRecording.value = false
+        // 停止所有音轨
+        stream.getTracks().forEach(track => track.stop())
+        
+        // 合并所有音频数据块并发送
+        if (audioChunks.length > 0 && websocket?.readyState === WebSocket.OPEN) {
+          try {
+            const audioBlob = new Blob(audioChunks, { type: mimeType })
+            console.log(`发送完整音频: ${audioBlob.size}字节, 格式: ${mimeType}`)
+            
+            const reader = new FileReader()
+            reader.onload = () => {
+              const arrayBuffer = reader.result as ArrayBuffer
+              const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)))
+              websocket!.send(JSON.stringify({
+                type: 'audio_complete',
+                audio_data: base64,
+                format: mimeType.includes('wav') ? 'wav' : 'webm'
+              }))
+            }
+            reader.readAsArrayBuffer(audioBlob)
+          } catch (err) {
+            console.error('发送音频数据失败:', err)
+          }
+        }
+      }
       
-    } catch (error) {
-      console.error('启动录音失败:', error)
-      ElMessage.error('无法访问麦克风，请检查权限设置')
+      mediaRecorder.start(1000) // 每1000ms发送一次数据，确保数据块足够大
+      return true
+      
+    } catch (err) {
+      error.value = '启动录音失败，请检查麦克风权限'
+      console.error('录音失败:', err)
+      return false
     }
   }
   
   // 停止录音
-  const stopListening = () => {
-    if (mediaRecorder && mediaRecorder.state === 'recording') {
+  const stopRecording = () => {
+    if (mediaRecorder && isRecording.value) {
       mediaRecorder.stop()
+      
+      // 发送录音结束信号
+      if (websocket?.readyState === WebSocket.OPEN) {
+        websocket.send(JSON.stringify({
+          type: 'stop_recording'
+        }))
+      }
     }
-    isListening.value = false
   }
   
-  // 处理音频进行语音识别
-  const processAudioForASR = async (audioBlob: Blob) => {
+  // 播放音频
+  const playAudio = async (audioUrl: string) => {
     try {
-      transcript.value = '正在识别...'
+      isPlaying.value = true
+      const audio = new Audio(audioUrl)
       
-      const formData = new FormData()
-      formData.append('audio', audioBlob, 'recording.webm')
-      
-      const response = await axios.post(`${API_BASE_URL}/asr`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        },
-        timeout: 30000 // 30秒超时
-      })
-      
-      if (response.data.success && response.data.text) {
-        transcript.value = response.data.text
-        ElMessage.success('语音识别成功')
-      } else {
-        transcript.value = '识别失败'
-        ElMessage.error('语音识别失败')
+      audio.onended = () => {
+        isPlaying.value = false
       }
       
-    } catch (error) {
-      console.error('语音识别失败:', error)
-      transcript.value = '识别失败'
-      
-      if (axios.isAxiosError(error)) {
-        if (error.code === 'ECONNABORTED') {
-          ElMessage.error('语音识别超时，请重试')
-        } else if (error.response?.status === 500) {
-          ElMessage.error('语音识别服务暂时不可用，请稍后重试')
-        } else {
-          ElMessage.error('语音识别失败，请重试')
-        }
-      } else {
-        ElMessage.error('语音识别失败，请重试')
+      audio.onerror = () => {
+        isPlaying.value = false
+        error.value = '音频播放失败'
       }
+      
+      await audio.play()
+    } catch (err) {
+      isPlaying.value = false
+      error.value = '音频播放失败'
+      console.error('播放音频失败:', err)
     }
   }
   
-  // 文本转语音
-  const speak = async (text: string, voice?: string, provider?: string, model?: string) => {
-    if (!text.trim()) {
-      ElMessage.warning('文本内容不能为空')
-      return
+  // 发送文本消息
+  const sendTextMessage = (text: string) => {
+    if (!text.trim()) return
+    
+    addMessage('user', text)
+    
+    if (websocket?.readyState === WebSocket.OPEN) {
+      websocket.send(JSON.stringify({
+        type: 'text_message',
+        text: text.trim()
+      }))
+    } else {
+      error.value = '语音服务未连接'
+    }
+  }
+  
+  // 清空消息
+  const clearMessages = () => {
+    messages.value = []
+  }
+  
+  // 断开连接
+  const disconnect = () => {
+    if (websocket) {
+      websocket.close()
+      websocket = null
     }
     
-    try {
-      // 停止当前播放
-      stopSpeaking()
-      
-      isSpeaking.value = true
-      
-      const targetProvider = provider || selectedProvider.value
-      const targetVoice = voice || selectedVoice.value
-      const targetModel = model || selectedModel.value
-      
-      const requestData: any = {
-        text: text.trim(),
-        voice: targetVoice,
-        provider: targetProvider
-      }
-      
-      // 硅基流动需要模型参数
-      if (targetProvider === 'siliconflow' && targetModel) {
-        requestData.model = targetModel
-      }
-      
-      const response = await axios.post(`${API_BASE_URL}/tts`, requestData, {
-        responseType: 'blob',
-        timeout: 30000 // 30秒超时
-      })
-      
-      // 创建音频URL并播放
-      const audioUrl = URL.createObjectURL(response.data)
-      currentAudio = new Audio(audioUrl)
-      
-      currentAudio.onended = () => {
-        isSpeaking.value = false
-        URL.revokeObjectURL(audioUrl)
-        currentAudio = null
-      }
-      
-      currentAudio.onerror = () => {
-        isSpeaking.value = false
-        URL.revokeObjectURL(audioUrl)
-        currentAudio = null
-        ElMessage.error('音频播放失败')
-      }
-      
-      await currentAudio.play()
-      
-    } catch (error) {
-      console.error('语音合成失败:', error)
-      isSpeaking.value = false
-      
-      if (axios.isAxiosError(error)) {
-        if (error.code === 'ECONNABORTED') {
-          ElMessage.error('语音合成超时，请重试')
-        } else if (error.response?.status === 500) {
-          ElMessage.error('语音合成服务暂时不可用，请稍后重试')
-        } else {
-          ElMessage.error('语音合成失败，请重试')
-        }
-      } else {
-        ElMessage.error('语音合成失败，请重试')
-      }
+    if (mediaRecorder && isRecording.value) {
+      stopRecording()
     }
-  }
-  
-  // 停止语音播放
-  const stopSpeaking = () => {
-    if (currentAudio) {
-      currentAudio.pause()
-      currentAudio.currentTime = 0
-      currentAudio = null
-    }
-    isSpeaking.value = false
-  }
-  
-  // 切换录音状态
-  const toggleListening = () => {
-    if (isListening.value) {
-      stopListening()
-    } else {
-      startListening()
-    }
-  }
-  
-  // 切换播放状态
-  const toggleSpeaking = (text: string) => {
-    if (isSpeaking.value) {
-      stopSpeaking()
-    } else {
-      speak(text)
-    }
-  }
-  
-  // 获取中文语音列表
-  const getChineseVoices = computed(() => {
-    return availableVoices.value.filter(voice => 
-      voice.language.includes('zh')
-    )
-  })
-  
-  // 切换语音提供商
-  const switchProvider = async (providerId: string) => {
-    selectedProvider.value = providerId
-    selectedModel.value = '' // 重置模型选择
-    await loadVoices(providerId)
-  }
-  
-  // 获取当前提供商的可用模型
-  const getAvailableModels = computed(() => {
-    if (selectedProvider.value === 'siliconflow') {
-      const models = [...new Set(availableVoices.value.map(v => v.model).filter(Boolean))]
-      return models.map(model => ({
-        id: model,
-        name: model?.split('/').pop() || model
-      }))
-    }
-    return []
-  })
-  
-  // 初始化
-  const init = async () => {
-    await loadProviders()
-    await loadVoices()
-    return await testConnection()
+    
+    isConnected.value = false
+    isRecording.value = false
+    isPlaying.value = false
   }
   
   return {
-    isListening,
-    isSpeaking,
-    isSupported,
+    // 状态
+    isConnected,
+    isRecording,
+    isPlaying,
+    error,
     transcript,
-    availableVoices,
-    selectedVoice,
-    availableProviders,
-    selectedProvider,
-    selectedModel,
-    startListening,
-    stopListening,
-    speak,
-    stopSpeaking,
-    toggleListening,
-    toggleSpeaking,
-    getChineseVoices,
-    getAvailableModels,
-    loadVoices,
-    loadProviders,
-    switchProvider,
-    testConnection,
-    init
+    messages,
+    config,
+    
+    // 方法
+    connect,
+    disconnect,
+    startRecording,
+    stopRecording,
+    sendTextMessage,
+    clearMessages,
+    playAudio
   }
 }

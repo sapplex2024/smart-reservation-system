@@ -24,7 +24,7 @@ async def get_statistics(
     """
     try:
         # 普通用户只能查看自己的统计，管理员可以查看全部
-        user_id = None if current_user.role == 'admin' else current_user.id
+        user_id = None if current_user.role == 'ADMIN' else current_user.id
         
         stats = report_service.get_reservation_statistics(
             db=db,
@@ -52,7 +52,7 @@ async def get_user_report(
     """
     try:
         # 检查权限：用户只能查看自己的报表，管理员可以查看任何用户
-        if current_user.role != 'admin' and current_user.id != user_id:
+        if current_user.role != 'ADMIN' and current_user.id != user_id:
             raise HTTPException(status_code=403, detail="权限不足")
         
         report = report_service.get_user_report(
@@ -83,7 +83,7 @@ async def export_excel(
     """
     try:
         # 普通用户只能导出自己的数据，管理员可以导出全部
-        user_id = None if current_user.role == 'admin' else current_user.id
+        user_id = None if current_user.role == 'ADMIN' else current_user.id
         
         excel_data = report_service.export_reservations_to_excel(
             db=db,
@@ -118,7 +118,7 @@ async def export_csv(
     """
     try:
         # 普通用户只能导出自己的数据，管理员可以导出全部
-        user_id = None if current_user.role == 'admin' else current_user.id
+        user_id = None if current_user.role == 'ADMIN' else current_user.id
         
         csv_data = report_service.export_reservations_to_csv(
             db=db,
@@ -154,7 +154,7 @@ async def get_dashboard_data(
         start_date = end_date - timedelta(days=7)
         
         # 普通用户只能查看自己的数据，管理员可以查看全部
-        user_id = None if current_user.role == 'admin' else current_user.id
+        user_id = None if current_user.role == 'ADMIN' else current_user.id
         
         stats = report_service.get_reservation_statistics(
             db=db,
@@ -172,7 +172,7 @@ async def get_dashboard_data(
         }
         
         # 如果是管理员，添加用户活跃度数据
-        if current_user.role == 'admin':
+        if current_user.role == 'ADMIN':
             dashboard_data['top_users'] = stats['user_activity'][:5]
         
         return {

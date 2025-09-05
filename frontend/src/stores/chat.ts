@@ -36,7 +36,7 @@ export const useChatStore = defineStore('chat', {
       this.isLoading = true
       
       try {
-        const response = await axios.post('/api/chat/', {
+        const response = await axios.post('/api/v1/chat/', {
           message: content,
           session_id: this.sessionId,
           voice_enabled: options?.voiceEnabled || false,
@@ -61,7 +61,7 @@ export const useChatStore = defineStore('chat', {
       if (!this.sessionId) return []
       
       try {
-        const response = await axios.get(`/api/chat/history/${this.sessionId}`)
+        const response = await axios.get(`/api/v1/chat/history/${this.sessionId}`)
         this.messages = response.data.messages || []
         return this.messages
       } catch (error) {

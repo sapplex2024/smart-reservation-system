@@ -7,6 +7,7 @@ from app.models.database import Reservation, Resource, User, ReservationType, Re
 from app.services.intent_service import IntentService
 from app.services.notification_service import NotificationService
 from app.core.logger import get_logger
+from app.api.reservations import get_status_display
 
 logger = get_logger(__name__)
 
@@ -227,18 +228,10 @@ class ReservationService:
     
     def _determine_reservation_type(self, message: str, entities: Dict[str, Any]) -> ReservationType:
         """
-        确定预约类型
+        确定预约类型 - 现在只支持会议室预约
         """
-        message_lower = message.lower()
-        
-        if any(word in message_lower for word in ["会议室", "会议", "meeting"]):
-            return ReservationType.MEETING
-        elif any(word in message_lower for word in ["访客", "来访", "visitor"]):
-            return ReservationType.VISITOR
-        elif any(word in message_lower for word in ["车位", "停车", "parking", "车辆", "入园", "进园", "开车"]):
-            return ReservationType.VEHICLE
-        else:
-            return ReservationType.MEETING  # 默认为会议室预约
+        # 系统现在只支持会议室预约
+        return ReservationType.MEETING
     
     def _extract_time_info(self, entities: Dict[str, Any], context: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -372,13 +365,11 @@ class ReservationService:
         """
         查找可用资源
         """
-        # 确定资源类型
+        # 确定资源类型 - 系统现在只支持会议室预约
         if reservation_type == ReservationType.MEETING:
             resource_type = ResourceType.MEETING_ROOM
-        elif reservation_type == ReservationType.VEHICLE:
-            resource_type = ResourceType.PARKING_SPACE
         else:
-            return None  # 访客预约不需要资源
+            return None  # 只支持会议室预约
         
         # 查找可用资源
         available_resources = db.query(Resource).filter(
@@ -534,6 +525,7 @@ import json
 from datetime import datetime, timedelta
 from typing import Dict, List, Any, Optional, Tuple
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from app.models.database import get_db
 from app.models.database import Reservation, Resource, User, ReservationStatus, ReservationType, ResourceType
 from app.services.intent_service import EnhancedIntentService
@@ -548,6 +540,32 @@ class EnhancedReservationService:
     def __init__(self):
         self.intent_service = EnhancedIntentService()
         self.notification_service = NotificationService()
+    
+    def _generate_reservation_number(self, db: Session, created_at: datetime = None) -> str:
+        """
+        生成预约编号
+        格式：年月日期+编号 (例如：250903001)
+        """
+        if created_at is None:
+            created_at = datetime.now()
+        
+        # 获取日期字符串 (年月日)
+        date_str = created_at.strftime('%y%m%d')
+        
+        # 查询当天已有的预约数量
+        start_of_day = created_at.replace(hour=0, minute=0, second=0, microsecond=0)
+        end_of_day = start_of_day + timedelta(days=1)
+        
+        count = db.query(func.count(Reservation.id)).filter(
+            Reservation.created_at >= start_of_day,
+            Reservation.created_at < end_of_day
+        ).scalar() or 0
+        
+        # 生成序号（从1开始）
+        sequence = count + 1
+        
+        # 返回格式化的预约编号
+        return f"{date_str}{sequence:03d}"
     
     async def process_conversational_request(self, message: str, intent: str, entities: Dict, 
                                            confidence: float, user_id: int, 
@@ -681,12 +699,11 @@ class EnhancedReservationService:
         if 'duration' in entities:
             info['duration_hours'] = self._parse_duration_entities(entities['duration'])
         
-        # 处理会议室类型
-        if 'room_type' in entities:
-            info['requirements'].extend(entities['room_type'])
-        
         # 处理参会人数
-        if 'visitor_info' in entities:
+        if 'attendee_count' in entities:
+            info['attendee_count'] = self._parse_attendee_count(entities['attendee_count'])
+        elif 'visitor_info' in entities:
+            # 兼容旧的visitor_info格式
             for visitor in entities['visitor_info']:
                 if visitor.endswith('人'):
                     try:
@@ -694,6 +711,14 @@ class EnhancedReservationService:
                         info['attendee_count'] = count
                     except ValueError:
                         pass
+        
+        # 处理设备需求
+        if 'equipment_requirements' in entities:
+            info['requirements'] = self._normalize_equipment_requirements(entities['equipment_requirements'])
+        
+        # 处理会议室类型（兼容性保留）
+        if 'room_type' in entities:
+            info['requirements'].extend(entities['room_type'])
         
         return info
     
@@ -846,6 +871,75 @@ class EnhancedReservationService:
         
         return 1.0  # 默认1小时
     
+    def _parse_attendee_count(self, attendee_entities: List[str]) -> int:
+        """解析参会人数"""
+        # 中文数字映射
+        chinese_numbers = {
+            '一': 1, '二': 2, '三': 3, '四': 4, '五': 5,
+            '六': 6, '七': 7, '八': 8, '九': 9, '十': 10,
+            '十一': 11, '十二': 12, '十三': 13, '十四': 14, '十五': 15,
+            '十六': 16, '十七': 17, '十八': 18, '十九': 19, '二十': 20
+        }
+        
+        for entity in attendee_entities:
+            try:
+                # 提取数字
+                import re
+                # 匹配纯数字
+                number_match = re.search(r'(\d+)', entity)
+                if number_match:
+                    return int(number_match.group(1))
+                
+                # 匹配中文数字
+                for chinese, number in chinese_numbers.items():
+                    if chinese in entity:
+                        return number
+                        
+            except Exception as e:
+                logger.warning(f"解析参会人数失败: {entity}, 错误: {str(e)}")
+                continue
+        
+        return 1  # 默认1人
+    
+    def _normalize_equipment_requirements(self, equipment_entities: List[str]) -> List[str]:
+        """标准化设备需求"""
+        # 设备映射表，将用户输入映射到数据库中的标准字段
+        equipment_mapping = {
+            '投影仪': 'projector',
+            '投影': 'projector', 
+            'projector': 'projector',
+            '电视': 'tv_screen',
+            'TV': 'tv_screen',
+            'tv': 'tv_screen',
+            '屏幕': 'tv_screen',
+            '白板': 'whiteboard',
+            'whiteboard': 'whiteboard',
+            '音响': 'sound_system',
+            '音箱': 'sound_system',
+            'sound': 'sound_system',
+            '视频会议': 'video_conference',
+            'video': 'video_conference',
+            'conference': 'video_conference',
+            '空调': 'air_conditioning',
+            'air': 'air_conditioning',
+            'WiFi': 'wifi',
+            'wifi': 'wifi',
+            '网络': 'wifi',
+            '麦克风': 'microphone',
+            'microphone': 'microphone',
+            'mic': 'microphone'
+        }
+        
+        normalized_requirements = []
+        for entity in equipment_entities:
+            for key, standard_name in equipment_mapping.items():
+                if key.lower() in entity.lower():
+                    if standard_name not in normalized_requirements:
+                        normalized_requirements.append(standard_name)
+                    break
+        
+        return normalized_requirements
+    
     def _check_reservation_completeness(self, info: Dict[str, Any]) -> Dict[str, Any]:
         """检查预约信息完整性"""
         missing_fields = []
@@ -909,10 +1003,14 @@ class EnhancedReservationService:
                     'suggestion': '请选择其他时间段或查看推荐的可用时间'
                 }
             
+            # 生成预约编号
+            reservation_number = self._generate_reservation_number(db)
+            
             # 创建预约
             reservation = Reservation(
                 user_id=user_id,
                 resource_id=suitable_room.id,
+                reservation_number=reservation_number,
                 type=info.get('type', ReservationType.MEETING),
                 title=info.get('title', '会议室预约'),
                 description=info.get('description', ''),
@@ -936,11 +1034,60 @@ class EnhancedReservationService:
             
             logger.info(f"预约创建成功: 用户{user_id}, 预约ID{reservation.id}")
             
+            # 构建会议室特性描述
+            room_features = []
+            if suitable_room.features:
+                feature_names = {
+                    'projector': '投影仪',
+                    'tv_screen': '电视屏幕',
+                    'whiteboard': '白板',
+                    'video_conference': '视频会议设备',
+                    'sound_system': '音响系统',
+                    'microphone': '麦克风',
+                    'air_conditioning': '空调',
+                    'wifi': 'WiFi',
+                    'quiet_environment': '安静环境'
+                }
+                for feature, available in suitable_room.features.items():
+                    if available and feature in feature_names:
+                        room_features.append(feature_names[feature])
+            
+            # 构建详细的预约成功消息
+            response_message = f"预约创建成功！\n\n" \
+                             f"📋 预约编号：{reservation.reservation_number}\n" \
+                             f"🏢 会议室：{suitable_room.name}\n" \
+                             f"👥 容量：{suitable_room.capacity}人\n" \
+                             f"🕐 时间：{start_time.strftime('%Y-%m-%d %H:%M')} - {end_time.strftime('%H:%M')}\n" \
+                             f"✅ 状态：已自动审批通过"
+            
+            if room_features:
+                response_message += f"\n🔧 设备设施：{', '.join(room_features)}"
+            
+            if info.get('attendee_count', 1) > 1:
+                response_message += f"\n👥 参会人数：{info.get('attendee_count')}人"
+            
+            if info.get('requirements'):
+                req_names = {
+                    'projector': '投影仪',
+                    'tv_screen': '电视',
+                    'whiteboard': '白板',
+                    'video_conference': '视频会议',
+                    'sound_system': '音响',
+                    'microphone': '麦克风',
+                    'quiet_environment': '安静环境'
+                }
+                matched_reqs = [req_names.get(req, req) for req in info.get('requirements', [])]
+                if matched_reqs:
+                    response_message += f"\n✨ 已满足需求：{', '.join(matched_reqs)}"
+            
             return {
                 'success': True,
-                'response': f'预约创建成功！预约编号：{reservation.id}',
+                'response': response_message,
                 'reservation_id': reservation.id,
+                'reservation_number': reservation.reservation_number,
                 'room_name': suitable_room.name,
+                'room_capacity': suitable_room.capacity,
+                'room_features': room_features,
                 'start_time': start_time.strftime('%Y-%m-%d %H:%M'),
                 'end_time': end_time.strftime('%H:%M'),
                 'status': '已自动审批通过'
@@ -1015,24 +1162,45 @@ class EnhancedReservationService:
         """计算会议室匹配度"""
         score = 0.0
         
-        # 容量匹配度（避免浪费）
+        # 容量匹配度（避免浪费，优先匹配合适大小的房间）
         attendee_count = info.get('attendee_count', 1)
         if room.capacity:
-            if attendee_count <= room.capacity <= attendee_count * 2:
-                score += 0.5  # 容量合适
-            elif room.capacity > attendee_count * 2:
+            if attendee_count <= room.capacity <= attendee_count * 1.5:
+                score += 0.6  # 容量非常合适
+            elif attendee_count <= room.capacity <= attendee_count * 2:
+                score += 0.4  # 容量合适
+            elif room.capacity >= attendee_count:
                 score += 0.2  # 容量过大但可用
+            else:
+                # 容量不足，直接返回0分
+                return 0.0
         
-        # 设备需求匹配
+        # 设备需求匹配（精确匹配）
         requirements = info.get('requirements', [])
-        room_features = room.features or []
+        room_features = room.features or {}
         
-        for req in requirements:
-            if any(req in feature for feature in room_features):
-                score += 0.3
+        if requirements:
+            matched_requirements = 0
+            for req in requirements:
+                # 检查房间是否有该设备
+                if isinstance(room_features, dict):
+                    if room_features.get(req, False):
+                        matched_requirements += 1
+                elif isinstance(room_features, list):
+                    if req in room_features:
+                        matched_requirements += 1
+            
+            # 设备匹配度：完全匹配得满分，部分匹配按比例给分
+            if len(requirements) > 0:
+                equipment_match_ratio = matched_requirements / len(requirements)
+                score += equipment_match_ratio * 0.3
+                
+                # 如果有设备需求但完全不匹配，降低分数
+                if matched_requirements == 0:
+                    score *= 0.5
         
-        # 位置偏好（可以根据用户部门等信息优化）
-        score += 0.2  # 基础分
+        # 基础可用性分数
+        score += 0.1
         
         return min(score, 1.0)
     
@@ -1116,7 +1284,7 @@ class EnhancedReservationService:
                     'resource_name': resource.name if resource else '未知资源',
                     'start_time': res.start_time.strftime('%Y-%m-%d %H:%M'),
                     'end_time': res.end_time.strftime('%H:%M'),
-                    'status': res.status.value,
+                    'status': get_status_display(res.status),
                     'attendee_count': res.details.get('attendee_count', 1) if res.details else 1
                 })
             
@@ -1144,11 +1312,128 @@ class EnhancedReservationService:
     
     async def _handle_cancel_intent(self, intent_result: Dict, user_id: int) -> Dict[str, Any]:
         """处理取消意图"""
-        return {
-            'success': True,
-            'response': '请提供要取消的预约编号，或者说"取消最近的预约"',
-            'suggestions': ['取消最近的预约', '查看我的预约']
-        }
+        try:
+            message = intent_result.get('message', '')
+            entities = intent_result.get('entities', {})
+            
+            # 获取数据库会话
+            db = next(get_db())
+            
+            # 检查是否是"取消最近的预约"命令
+            if any(keyword in message for keyword in ['最近', '最新', '最后', 'latest', 'recent']):
+                # 查找用户最近的可取消预约
+                latest_reservation = db.query(Reservation).filter(
+                    and_(
+                        Reservation.user_id == user_id,
+                        Reservation.status.in_([ReservationStatus.PENDING, ReservationStatus.APPROVED]),
+                        Reservation.start_time > datetime.utcnow()
+                    )
+                ).order_by(Reservation.created_at.desc()).first()
+                
+                if latest_reservation:
+                    # 取消最近的预约
+                    old_status = latest_reservation.status
+                    latest_reservation.status = ReservationStatus.CANCELLED
+                    latest_reservation.updated_at = datetime.utcnow()
+                    db.commit()
+                    
+                    # 发送取消通知
+                    await self.notification_service.send_status_change_notification(
+                        reservation=latest_reservation,
+                        old_status=old_status,
+                        new_status=ReservationStatus.CANCELLED,
+                        db=db
+                    )
+                    
+                    return {
+                        'success': True,
+                        'response': f"已成功取消您最近的预约：\n"
+                                  f"预约 #{latest_reservation.id}\n"
+                                  f"标题：{latest_reservation.title}\n"
+                                  f"时间：{latest_reservation.start_time.strftime('%Y-%m-%d %H:%M')}",
+                        'suggestions': ['查看其他预约', '创建新预约']
+                    }
+                else:
+                    return {
+                        'success': False,
+                        'response': '您没有可以取消的预约。',
+                        'suggestions': ['查看我的预约', '创建新预约']
+                    }
+            else:
+                # 处理指定预约ID的取消请求
+                reservation_id = self._extract_reservation_id(message, entities)
+                
+                if reservation_id:
+                    reservation = db.query(Reservation).filter(
+                        and_(
+                            Reservation.id == reservation_id,
+                            Reservation.user_id == user_id,
+                            Reservation.status.in_([ReservationStatus.PENDING, ReservationStatus.APPROVED])
+                        )
+                    ).first()
+                    
+                    if reservation:
+                        old_status = reservation.status
+                        reservation.status = ReservationStatus.CANCELLED
+                        reservation.updated_at = datetime.utcnow()
+                        db.commit()
+                        
+                        # 发送取消通知
+                        await self.notification_service.send_status_change_notification(
+                            reservation=reservation,
+                            old_status=old_status,
+                            new_status=ReservationStatus.CANCELLED,
+                            db=db
+                        )
+                        
+                        return {
+                            'success': True,
+                            'response': f"预约 #{reservation.id} 已成功取消。\n"
+                                      f"原预约：{reservation.title}\n"
+                                      f"时间：{reservation.start_time.strftime('%Y-%m-%d %H:%M')}",
+                            'suggestions': ['查看其他预约', '创建新预约']
+                        }
+                    else:
+                        return {
+                            'success': False,
+                            'response': '未找到可取消的预约，请检查预约编号。',
+                            'suggestions': ['查看我的预约', '提供正确的预约编号']
+                        }
+                else:
+                    # 显示可取消的预约列表
+                    active_reservations = db.query(Reservation).filter(
+                        and_(
+                            Reservation.user_id == user_id,
+                            Reservation.status.in_([ReservationStatus.PENDING, ReservationStatus.APPROVED]),
+                            Reservation.start_time > datetime.utcnow()
+                        )
+                    ).order_by(Reservation.start_time).all()
+                    
+                    if not active_reservations:
+                        return {
+                            'success': False,
+                            'response': '您没有可以取消的预约。',
+                            'suggestions': ['查看所有预约', '创建新预约']
+                        }
+                    
+                    response_text = "请选择要取消的预约：\n\n"
+                    for res in active_reservations:
+                        response_text += f"#{res.id} {res.title}\n"
+                        response_text += f"时间：{res.start_time.strftime('%m-%d %H:%M')} - {res.end_time.strftime('%H:%M')}\n\n"
+                    
+                    return {
+                        'success': True,
+                        'response': response_text,
+                        'suggestions': [f'取消预约 #{res.id}' for res in active_reservations[:3]]
+                    }
+                
+        except Exception as e:
+            logger.error(f"处理取消意图失败: {str(e)}")
+            return {
+                'success': False,
+                'response': f'处理取消请求时发生错误：{str(e)}',
+                'suggestions': ['重新尝试', '联系管理员']
+            }
     
     async def _handle_modify_intent(self, intent_result: Dict, user_id: int) -> Dict[str, Any]:
         """处理修改意图"""
@@ -1157,6 +1442,23 @@ class EnhancedReservationService:
             'response': '请提供要修改的预约编号和新的时间，例如："修改预约123到明天下午3点"',
             'suggestions': ['查看我的预约', '修改最近的预约时间']
         }
+    
+    def _extract_reservation_id(self, message: str, entities: Dict[str, Any]) -> Optional[int]:
+        """
+        从消息中提取预约ID
+        """
+        import re
+        
+        # 查找 #数字 格式
+        id_match = re.search(r"#(\d+)", message)
+        if id_match:
+            return int(id_match.group(1))
+        
+        # 查找纯数字
+        if "number" in entities and entities["number"]:
+            return entities["number"][0]
+        
+        return None
     
     def _handle_help_intent(self, intent_result: Dict) -> Dict[str, Any]:
         """处理帮助意图"""

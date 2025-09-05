@@ -1,6 +1,6 @@
 # 智能预约系统 (Smart Reservation System)
 
-[![Version](https://img.shields.io/badge/version-0.3.0-blue.svg)](https://github.com/sapplex2024/smart-reservation-system/releases/tag/v0.3.0)
+[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/sapplex2024/smart-reservation-system/releases/tag/v1.0.0)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/)
 [![Vue.js](https://img.shields.io/badge/vue.js-3.4+-green.svg)](https://vuejs.org/)

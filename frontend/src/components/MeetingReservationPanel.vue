@@ -235,7 +235,7 @@ const todayReservations = computed(() => {
 const loadReservations = async () => {
   loading.value = true
   try {
-    const response = await axios.get('/api/reservations/', {
+    const response = await axios.get('/api/v1/reservations/', {
       params: {
         start_date: selectedDate.value,
         end_date: selectedDate.value,

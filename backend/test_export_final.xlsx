@@ -1,0 +1,1 @@
+{"error":true,"message":"导出Excel失败: type object 'Reservation' has no attribute 'duration'","status_code":500,"timestamp":1757058276.303359}

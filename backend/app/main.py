@@ -14,8 +14,10 @@ from app.api.auth import router as auth_router
 from app.api.chat import router as chat_router
 from app.api.reservations import router as reservations_router
 from app.api.resources import router as resources_router
-from app.api.voice import router as voice_router
+
 from app.api.voice_config import router as voice_config_router
+from app.api.voice import router as voice_router
+from app.api.voice_chat import router as voice_chat_router
 from .api.notifications import router as notifications_router
 from .api.reports import router as reports_router
 from .api.settings import router as settings_router
@@ -23,7 +25,6 @@ from .api.logs import router as logs_router
 from .api.siliconflow import router as siliconflow_router
 from .api.smart_reservation import router as smart_reservation_router
 from .api.ai_config import router as ai_config_router
-from app.services.qwen_service import qwen_service
 
 # 创建FastAPI应用实例
 app = FastAPI(
@@ -62,10 +63,12 @@ app.add_exception_handler(Exception, general_exception_handler)
 # 注册路由
 app.include_router(auth_router, prefix="/api/auth", tags=["认证"])
 app.include_router(chat_router, prefix="/api/chat", tags=["智能对话"])
-app.include_router(reservations_router, prefix="/api/reservations", tags=["预约管理"])
+app.include_router(reservations_router, prefix="/api/v1/reservations", tags=["预约管理"])
 app.include_router(resources_router, prefix="/api/resources", tags=["资源管理"])
-app.include_router(voice_router, prefix="/api/voice", tags=["语音服务"])
-app.include_router(voice_config_router, prefix="/api/voice", tags=["语音配置"])
+
+app.include_router(voice_config_router, tags=["语音配置"])
+app.include_router(voice_router, tags=["语音服务"])
+app.include_router(voice_chat_router, tags=["语音聊天"])
 app.include_router(notifications_router, prefix="/api/notifications", tags=["通知管理"])
 app.include_router(reports_router, prefix="/api/reports", tags=["报表管理"])
 app.include_router(settings_router, prefix="/api/settings", tags=["系统设置"])

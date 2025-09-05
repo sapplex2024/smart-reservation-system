@@ -1,0 +1,32 @@
+# 核心Web框架
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+
+# 数据库
+sqlalchemy==2.0.23
+alembic==1.12.1
+
+# 认证与安全
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+python-multipart==0.0.6
+
+# AI/LLM集成
+openai>=1.6.1
+
+# Async & Background Tasks
+celery==5.3.4
+redis==5.0.1
+
+# 数据验证
+pydantic==2.5.3
+pydantic-settings==2.1.0
+
+# HTTP Client
+httpx==0.25.2
+requests==2.31.0
+
+# 工具库
+python-dateutil==2.8.2
+pytz==2023.3
+pandas==2.3.2

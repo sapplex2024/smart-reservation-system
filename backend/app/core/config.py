@@ -22,6 +22,12 @@ class Settings(BaseSettings):
     QWEN_API_KEY: Optional[str] = None
     QWEN_MODEL: str = "qwen-turbo"
     
+    # 硅基流动API配置
+    SILICONFLOW_API_KEY: Optional[str] = None
+    SILICONFLOW_BASE_URL: str = "https://api.siliconflow.cn/v1"
+    SILICONFLOW_CHAT_MODEL: str = "Qwen/Qwen2.5-7B-Instruct"
+    SILICONFLOW_TTS_MODEL: str = "FishAudio/fish-speech-1.4"
+    
     # Redis
     REDIS_URL: str = "redis://localhost:6379"
     
@@ -33,3 +39,7 @@ class Settings(BaseSettings):
         case_sensitive = True
 
 settings = Settings()
+
+def get_settings() -> Settings:
+    """获取配置实例"""
+    return settings

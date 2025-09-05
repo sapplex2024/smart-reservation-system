@@ -91,24 +91,24 @@ class AuthService:
     @staticmethod
     def is_admin(user: User) -> bool:
         """检查用户是否为管理员"""
-        return user.role == "admin"
+        return user.role == "ADMIN"
     
     @staticmethod
     def is_manager(user: User) -> bool:
         """检查用户是否为经理"""
-        return user.role in ["admin", "manager"]
+        return user.role in ["ADMIN", "MANAGER"]
     
     @staticmethod
     def can_manage_users(user: User) -> bool:
         """检查用户是否可以管理其他用户"""
-        return user.role in ["admin", "manager"]
+        return user.role in ["ADMIN", "MANAGER"]
     
     @staticmethod
     def can_access_logs(user: User) -> bool:
         """检查用户是否可以访问日志"""
-        return user.role in ["admin", "manager"]
+        return user.role in ["ADMIN", "MANAGER"]
     
     @staticmethod
     def can_modify_settings(user: User) -> bool:
         """检查用户是否可以修改系统设置"""
-        return user.role == "admin"
+        return user.role == "ADMIN"

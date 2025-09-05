@@ -238,7 +238,7 @@ async def get_recent_errors(
 ):
     """获取最近的错误日志"""
     # 检查权限
-    if current_user.role not in ["admin", "manager"]:
+    if current_user.role not in ["ADMIN", "MANAGER"]:
         raise HTTPException(status_code=403, detail="权限不足")
     
     try:

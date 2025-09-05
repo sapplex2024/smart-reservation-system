@@ -19,33 +19,17 @@
     </div>
 
     <!-- 主输入区域 -->
-    <div class="input-container" :class="{ 'voice-active': isListening, 'processing': isProcessing }">
-      <!-- 语音可视化区域 -->
-      <div class="voice-visualization" v-if="isListening">
-        <div class="voice-wave">
-          <div class="wave-bar" v-for="i in 7" :key="i" :style="{ animationDelay: i * 0.1 + 's' }"></div>
-        </div>
-        <div class="voice-status-text">正在聆听...</div>
-      </div>
-
-      <!-- 实时转录显示 -->
-      <div class="real-time-transcript" v-if="currentTranscript && isListening">
-        <div class="transcript-content">
-          <span class="transcript-icon">🎤</span>
-          <span class="transcript-text">{{ currentTranscript }}</span>
-        </div>
-      </div>
-
+    <div class="input-container">
       <!-- 文字输入区域 -->
-      <div class="text-input-area" v-if="!isListening">
+      <div class="text-input-area">
         <el-input
           v-model="inputMessage"
           type="textarea"
           :rows="1"
           :autosize="{ minRows: 1, maxRows: 4 }"
-          placeholder="输入消息或点击麦克风使用语音输入..."
+          placeholder="输入消息..."
           @keydown.enter="handleEnter"
-          :disabled="isLoading || isProcessing"
+          :disabled="isLoading"
           class="unified-input"
           ref="textInput"
         />
@@ -53,32 +37,10 @@
 
       <!-- 控制按钮区域 -->
       <div class="control-buttons">
-        <!-- 语音按钮 -->
-        <button 
-          @click="toggleRecording" 
-          :disabled="isProcessing"
-          :class="['voice-btn', { 
-            'recording': isListening, 
-            'pulse': !isListening && !isProcessing,
-            'disabled': isProcessing 
-          }]"
-          :title="isListening ? '停止录音' : '开始语音输入'"
-        >
-          <div class="btn-icon">
-            <svg v-if="!isListening" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
-              <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
-            </svg>
-            <svg v-else width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M6 6h12v12H6z"/>
-            </svg>
-          </div>
-        </button>
-
         <!-- 发送按钮 -->
         <button 
           @click="sendMessage" 
-          :disabled="!inputMessage.trim() || isLoading || isProcessing"
+          :disabled="!inputMessage.trim() || isLoading"
           :class="['send-btn', { 'active': inputMessage.trim() }]"
           title="发送消息"
         >
@@ -93,20 +55,17 @@
     </div>
 
     <!-- 状态指示器 -->
-    <div class="status-indicator" v-if="isProcessing || isLoading">
+    <div class="status-indicator" v-if="isLoading">
       <div class="status-content">
         <div class="status-spinner"></div>
-        <span class="status-text">
-          {{ isProcessing ? '正在处理语音...' : '发送中...' }}
-        </span>
+        <span class="status-text">发送中...</span>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, watch, nextTick } from 'vue'
-import { useCloudSpeech } from '@/composables/useCloudSpeech'
+import { ref, computed, nextTick } from 'vue'
 
 // Props
 const props = defineProps({
@@ -128,24 +87,12 @@ const props = defineProps({
 const emit = defineEmits([
   'update:modelValue',
   'message-sent',
-  'voice-start',
-  'voice-end',
   'suggestion-applied'
 ])
 
 // Refs
 const textInput = ref(null)
 const isLoading = ref(false)
-const isProcessing = ref(false)
-
-// 语音相关
-const {
-  isListening,
-  transcript: currentTranscript,
-  startListening,
-  stopListening,
-  toggleListening
-} = useCloudSpeech()
 
 // 计算属性
 const inputMessage = computed({
@@ -154,22 +101,7 @@ const inputMessage = computed({
 })
 
 // 方法
-const toggleRecording = async () => {
-  if (isListening.value) {
-    stopListening()
-    emit('voice-end')
-  } else {
-    emit('voice-start')
-    await startListening()
-  }
-}
-
 const sendMessage = async () => {
-  if (isListening.value) {
-    stopListening()
-    return
-  }
-  
   if (!inputMessage.value.trim()) return
   
   isLoading.value = true
@@ -198,23 +130,7 @@ const applySuggestion = (suggestion) => {
   })
 }
 
-// 监听语音转录结果
-watch(currentTranscript, (newTranscript) => {
-  if (newTranscript && !isListening.value) {
-    inputMessage.value = newTranscript
-  }
-})
 
-// 监听语音状态变化
-watch(isListening, (listening) => {
-  isProcessing.value = false
-  if (!listening && currentTranscript.value) {
-    isProcessing.value = true
-    setTimeout(() => {
-      isProcessing.value = false
-    }, 1000)
-  }
-})
 </script>
 
 <style scoped>
@@ -239,70 +155,7 @@ watch(isListening, (listening) => {
   box-shadow: 0 4px 20px rgba(102, 126, 234, 0.1);
 }
 
-.input-container.voice-active {
-  border-color: #ff6b6b;
-  background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
-  box-shadow: 0 8px 32px rgba(255, 107, 107, 0.3);
-}
 
-.input-container.processing {
-  border-color: #ffa726;
-  background: linear-gradient(135deg, #ffd54f 0%, #ffecb3 100%);
-}
-
-/* 语音可视化 */
-.voice-visualization {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 20px 0;
-}
-
-.voice-wave {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  margin-bottom: 12px;
-}
-
-.wave-bar {
-  width: 4px;
-  height: 20px;
-  background: linear-gradient(to top, #ff6b6b, #ff8e8e);
-  border-radius: 2px;
-  animation: wave 1.5s ease-in-out infinite;
-}
-
-.voice-status-text {
-  color: #d63031;
-  font-weight: 600;
-  font-size: 16px;
-}
-
-/* 实时转录 */
-.real-time-transcript {
-  background: rgba(255, 255, 255, 0.9);
-  border-radius: 12px;
-  padding: 12px 16px;
-  margin-bottom: 16px;
-  backdrop-filter: blur(10px);
-}
-
-.transcript-content {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.transcript-icon {
-  font-size: 16px;
-}
-
-.transcript-text {
-  color: #2d3436;
-  font-style: italic;
-  flex: 1;
-}
 
 /* 文字输入区域 */
 .text-input-area {
@@ -336,7 +189,7 @@ watch(isListening, (listening) => {
   align-items: center;
 }
 
-.voice-btn, .send-btn {
+.send-btn {
   width: 48px;
   height: 48px;
   border: none;
@@ -348,28 +201,6 @@ watch(isListening, (listening) => {
   transition: all 0.3s ease;
   position: relative;
   overflow: hidden;
-}
-
-.voice-btn {
-  background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%);
-  color: white;
-  box-shadow: 0 4px 16px rgba(116, 185, 255, 0.3);
-}
-
-.voice-btn.recording {
-  background: linear-gradient(135deg, #ff6b6b 0%, #e17055 100%);
-  animation: pulse-recording 2s ease-in-out infinite;
-}
-
-.voice-btn.processing {
-  background: linear-gradient(135deg, #ffa726 0%, #ff9800 100%);
-}
-
-.voice-btn.pulse {
-  animation: gentle-pulse 3s ease-in-out infinite;
-}
-
-.send-btn {
   background: linear-gradient(135deg, #00b894 0%, #00a085 100%);
   color: white;
   box-shadow: 0 4px 16px rgba(0, 184, 148, 0.3);
@@ -382,11 +213,11 @@ watch(isListening, (listening) => {
   transform: scale(1);
 }
 
-.voice-btn:hover, .send-btn:hover {
+.send-btn:hover {
   transform: translateY(-2px) scale(1.05);
 }
 
-.voice-btn:disabled, .send-btn:disabled {
+.send-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
   transform: none;
@@ -482,33 +313,6 @@ watch(isListening, (listening) => {
 }
 
 /* 动画 */
-@keyframes wave {
-  0%, 100% { height: 20px; }
-  50% { height: 35px; }
-}
-
-@keyframes pulse-recording {
-  0%, 100% { 
-    transform: scale(1);
-    box-shadow: 0 4px 16px rgba(255, 107, 107, 0.3);
-  }
-  50% { 
-    transform: scale(1.1);
-    box-shadow: 0 8px 32px rgba(255, 107, 107, 0.5);
-  }
-}
-
-@keyframes gentle-pulse {
-  0%, 100% { 
-    transform: scale(1);
-    box-shadow: 0 4px 16px rgba(116, 185, 255, 0.3);
-  }
-  50% { 
-    transform: scale(1.02);
-    box-shadow: 0 6px 20px rgba(116, 185, 255, 0.4);
-  }
-}
-
 @keyframes spin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
@@ -520,7 +324,7 @@ watch(isListening, (listening) => {
     padding: 12px;
   }
   
-  .voice-btn, .send-btn {
+  .send-btn {
     width: 44px;
     height: 44px;
   }

@@ -1,4 +1,4 @@
-#!/home/cloudenlight/smart-reservation-system/backend/venv/bin/python3.12
+#!/home/cloudenlight/smart-reservation-system/backend/venv/bin/python
 # -*- coding: utf-8 -*-
 import re
 import sys

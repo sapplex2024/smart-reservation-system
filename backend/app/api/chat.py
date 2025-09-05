@@ -10,8 +10,7 @@ from app.models.database import get_db, ChatSession, ChatMessage, User
 from app.services.ai_service import AIService
 from app.services.intent_service import EnhancedIntentService
 from app.services.reservation_service import EnhancedReservationService
-from app.services.qwen_service import qwen_service
-from app.services.siliconflow_service import siliconflow_service
+# 移除已删除的语音服务导入
 
 router = APIRouter()
 
@@ -108,22 +107,8 @@ async def chat(request: ChatRequest, db: Session = Depends(get_db)):
         chat_session.updated_at = datetime.utcnow()
         db.commit()
         
-        # 生成语音（如果启用）
+        # 语音功能已迁移到新的语音对话接口
         audio_url = None
-        if request.voice_enabled and response_text:
-            try:
-                if request.voice_provider == "qwen":
-                    audio_result = await qwen_service.text_to_speech(response_text)
-                    if audio_result and "audio_url" in audio_result:
-                        audio_url = audio_result["audio_url"]
-                elif request.voice_provider == "siliconflow":
-                    audio_result = await siliconflow_service.text_to_speech(response_text)
-                    if audio_result and "audio_url" in audio_result:
-                        audio_url = audio_result["audio_url"]
-                # 科大讯飞语音可以在后续添加
-            except Exception as voice_error:
-                # 语音生成失败不影响文本响应
-                print(f"语音生成失败: {voice_error}")
         
         return ChatResponse(
             response=response_text,

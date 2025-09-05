@@ -28,7 +28,7 @@ export function useNotifications() {
   
   // 轮询间隔（毫秒）
   const POLL_INTERVAL = 30000 // 30秒
-  let pollTimer: number | null = null
+  let pollTimer: ReturnType<typeof setInterval> | null = null
   
   // 计算属性
   const unreadNotifications = computed(() => 
@@ -50,7 +50,7 @@ export function useNotifications() {
         limit: limit.toString()
       })
       
-      const response = await fetch(`/api/notifications?${params}`, {
+      const response = await fetch(`/api/notifications/?${params}`, {
         headers: {
           'Authorization': `Bearer ${authStore.token}`,
           'Content-Type': 'application/json'

@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from typing import Dict, Any, Optional
 from pydantic import BaseModel
 
-from ..models.database import get_db
+from ..models.database import get_db, UserRole
 from ..services.settings_service import SettingsService
 from ..services.auth_service import AuthService
 from ..api.auth import get_current_user
@@ -29,12 +29,12 @@ class SettingsResponse(BaseModel):
 @router.get("/", response_model=Dict[str, Any])
 async def get_all_settings(
     db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_user)
+    current_user = Depends(get_current_user)
 ):
     """获取所有系统设置"""
     try:
         # 检查用户权限（只有管理员可以查看系统设置）
-        if current_user.get("role") != "admin":
+        if current_user.role != UserRole.ADMIN:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="只有管理员可以查看系统设置"
@@ -59,12 +59,12 @@ async def get_all_settings(
 async def get_category_settings(
     category: str,
     db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_user)
+    current_user = Depends(get_current_user)
 ):
     """获取指定类别的设置"""
     try:
         # 检查用户权限
-        if current_user.get("role") != "admin":
+        if current_user.role != UserRole.ADMIN:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="只有管理员可以查看系统设置"
@@ -90,12 +90,12 @@ async def get_setting_value(
     category: str,
     key: str,
     db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_user)
+    current_user = Depends(get_current_user)
 ):
     """获取单个设置值"""
     try:
         # 检查用户权限
-        if current_user.get("role") != "admin":
+        if current_user.role != UserRole.ADMIN:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="只有管理员可以查看系统设置"
@@ -124,12 +124,12 @@ async def get_setting_value(
 async def update_settings(
     settings_update: SettingsUpdate,
     db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_user)
+    current_user = Depends(get_current_user)
 ):
     """更新系统设置"""
     try:
         # 检查用户权限
-        if current_user.get("role") != "admin":
+        if current_user.role != UserRole.ADMIN:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="只有管理员可以修改系统设置"
@@ -170,12 +170,12 @@ async def update_settings(
 async def reset_settings(
     category: Optional[str] = None,
     db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_user)
+    current_user = Depends(get_current_user)
 ):
     """重置设置到默认值"""
     try:
         # 检查用户权限
-        if current_user.get("role") != "admin":
+        if current_user.role != UserRole.ADMIN:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="只有管理员可以重置系统设置"
@@ -206,12 +206,12 @@ async def reset_settings(
 @router.get("/system-info", response_model=Dict[str, Any])
 async def get_system_info(
     db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_user)
+    current_user = Depends(get_current_user)
 ):
     """获取系统信息"""
     try:
         # 检查用户权限
-        if current_user.get("role") != "admin":
+        if current_user.role != UserRole.ADMIN:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="只有管理员可以查看系统信息"
@@ -235,12 +235,12 @@ async def get_system_info(
 @router.get("/export", response_model=Dict[str, Any])
 async def export_settings(
     db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_user)
+    current_user = Depends(get_current_user)
 ):
     """导出系统设置"""
     try:
         # 检查用户权限
-        if current_user.get("role") != "admin":
+        if current_user.role != UserRole.ADMIN:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="只有管理员可以导出系统设置"
@@ -265,12 +265,12 @@ async def export_settings(
 async def import_settings(
     settings_import: SettingsImport,
     db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_user)
+    current_user = Depends(get_current_user)
 ):
     """导入系统设置"""
     try:
         # 检查用户权限
-        if current_user.get("role") != "admin":
+        if current_user.role != UserRole.ADMIN:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="只有管理员可以导入系统设置"
@@ -300,12 +300,12 @@ async def import_settings(
 @router.post("/validate", response_model=Dict[str, Any])
 async def validate_settings(
     settings_update: SettingsUpdate,
-    current_user: dict = Depends(get_current_user)
+    current_user = Depends(get_current_user)
 ):
     """验证设置数据"""
     try:
         # 检查用户权限
-        if current_user.get("role") != "admin":
+        if current_user.role != UserRole.ADMIN:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="只有管理员可以验证系统设置"

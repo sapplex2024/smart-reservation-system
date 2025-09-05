@@ -92,7 +92,7 @@ export function useReservations() {
       if (endDate) params.append('end_date', endDate)
       if (reservationType) params.append('reservation_type', reservationType)
 
-      const response = await fetch(`/api/reservations/?${params}`, {
+      const response = await fetch(`/api/v1/reservations/?${params}`, {
         headers: {
           'Content-Type': 'application/json'
         }
@@ -120,7 +120,7 @@ export function useReservations() {
     try {
       loading.value = true
 
-      const response = await fetch(`/api/reservations/${id}`, {
+      const response = await fetch(`/api/v1/reservations/${id}`, {
         headers: {
           'Content-Type': 'application/json'
         }
@@ -146,7 +146,7 @@ export function useReservations() {
     try {
       loading.value = true
 
-      const response = await fetch('/api/reservations/', {
+      const response = await fetch('/api/v1/reservations/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -176,7 +176,7 @@ export function useReservations() {
     try {
       loading.value = true
 
-      const response = await fetch(`/api/reservations/${id}/`, {
+      const response = await fetch(`/api/v1/reservations/${id}/`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json'
@@ -206,7 +206,7 @@ export function useReservations() {
     try {
       loading.value = true
 
-      const response = await fetch(`/api/reservations/${id}/`, {
+      const response = await fetch(`/api/v1/reservations/${id}/`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json'

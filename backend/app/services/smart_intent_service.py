@@ -4,6 +4,8 @@ from typing import Dict, List, Any, Optional
 from datetime import datetime, timedelta
 from .ai_service import AIService
 from .intent_service import IntentService
+from .enhanced_llm_service import EnhancedLLMService
+from .smart_time_parser import SmartTimeParser
 import logging
 
 logger = logging.getLogger(__name__)
@@ -14,6 +16,8 @@ class SmartIntentService:
     def __init__(self):
         self.ai_service = AIService()
         self.intent_service = IntentService()
+        self.enhanced_llm_service = EnhancedLLMService()
+        self.time_parser = SmartTimeParser()
         
     async def analyze_smart_intent(
         self, 
@@ -47,7 +51,47 @@ class SmartIntentService:
         message: str, 
         context: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
-        """使用大模型进行意图分析"""
+        """使用增强的LLM服务进行意图分析"""
+        
+        try:
+            # 首先尝试使用增强的LLM服务
+            user_id = context.get("user_id", "default_user") if context else "default_user"
+            
+            # 使用增强LLM服务进行智能对话分析
+            enhanced_result = await self.enhanced_llm_service.smart_chat(
+                user_id=user_id,
+                message=message,
+                context=context
+            )
+            
+            # 如果增强服务成功且包含意图分析结果
+            if enhanced_result.get("success") and enhanced_result.get("intent_analysis"):
+                intent_data = enhanced_result["intent_analysis"]
+                
+                # 使用智能时间解析器增强时间信息
+                if "time" in intent_data.get("entities", {}):
+                    time_info = intent_data["entities"]["time"]
+                    if isinstance(time_info, dict) and time_info.get("raw_text"):
+                        parsed_time = self.time_parser.parse_time_expression(time_info["raw_text"])
+                        if parsed_time:
+                            intent_data["entities"]["time"].update(parsed_time)
+                
+                return intent_data
+            
+            # 如果增强服务不可用，降级到传统AI服务
+            return await self._fallback_ai_analysis(message, context)
+            
+        except Exception as e:
+            logger.error(f"增强AI意图分析失败: {e}")
+            # 降级到传统AI服务
+            return await self._fallback_ai_analysis(message, context)
+    
+    async def _fallback_ai_analysis(
+        self, 
+        message: str, 
+        context: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
+        """降级的AI意图分析方法"""
         
         # 构建对话历史
         conversation_history = ""
@@ -101,7 +145,7 @@ class SmartIntentService:
 }}
 
 注意：
-- 时间解析要考虑相对时间（如"明天"、"下周"、"下午2点"）
+- 时间解析要考虑相对时间（如\"明天\"、\"下周\"、\"下午2点\"）
 - 如果信息不完整，在missing_information中列出
 - 提供友好的自然语言回复
 - 置信度要根据信息完整性和明确性评估
@@ -118,13 +162,32 @@ class SmartIntentService:
             json_match = re.search(r'\{.*\}', ai_response, re.DOTALL)
             if json_match:
                 json_str = json_match.group()
-                return json.loads(json_str)
+                result = json.loads(json_str)
+                
+                # 使用智能时间解析器增强时间信息
+                if "entities" in result and "time" in result["entities"]:
+                    time_info = result["entities"]["time"]
+                    if isinstance(time_info, dict):
+                        # 尝试解析时间表达
+                        time_expressions = []
+                        if time_info.get("start_time"):
+                            time_expressions.append(time_info["start_time"])
+                        if time_info.get("end_time"):
+                            time_expressions.append(time_info["end_time"])
+                        
+                        for expr in time_expressions:
+                            parsed_time = self.time_parser.parse_time_expression(expr)
+                            if parsed_time:
+                                result["entities"]["time"].update(parsed_time)
+                                break
+                
+                return result
             else:
                 logger.warning(f"无法从AI响应中提取JSON: {ai_response}")
                 return {"intent": "unknown", "confidence": 0.0}
                 
         except Exception as e:
-            logger.error(f"AI意图分析失败: {e}")
+            logger.error(f"降级AI意图分析失败: {e}")
             # 检查是否是API密钥相关错误
             if "API密钥" in str(e) or "InvalidApiKey" in str(e) or "401" in str(e):
                 logger.warning("检测到API密钥无效，使用本地规则引擎")
@@ -137,58 +200,65 @@ class SmartIntentService:
     ) -> Dict[str, Any]:
         """融合AI分析和规则分析结果"""
         
-        # 智能选择意图：优先使用非unknown的结果
-        ai_intent = ai_result.get("intent", "unknown")
-        rule_intent = rule_result.get("intent", "unknown")
-        
-        if ai_intent != "unknown":
-            final_intent = ai_intent
-        elif rule_intent != "unknown":
-            final_intent = rule_intent
-        else:
-            final_intent = "unknown"
-        
-        merged = {
-            "intent": final_intent,
-            "confidence": max(
-                ai_result.get("confidence", 0.0),
-                rule_result.get("confidence", 0.0)
-            ),
-            "entities": {},
-            "missing_information": [],
-            "suggestions": [],
-            "natural_response": ai_result.get("natural_response", "")
-        }
-        
-        # 融合实体信息
-        ai_entities = ai_result.get("entities", {})
-        rule_entities = rule_result.get("entities", {})
-        
-        # 时间信息优先使用AI结果，因为AI更擅长自然语言时间解析
-        if ai_entities.get("time"):
-            merged["entities"]["time"] = ai_entities["time"]
-        elif rule_entities.get("time"):
-            merged["entities"]["time"] = rule_entities["time"]
-        
-        # 其他实体信息取并集
-        for key in ["room_type", "visitor_info", "vehicle_info", "special_requirements"]:
-            if ai_entities.get(key):
-                merged["entities"][key] = ai_entities[key]
-            elif rule_entities.get(key):
-                merged["entities"][key] = rule_entities[key]
-        
-        # 合并缺失信息和建议
-        merged["missing_information"] = list(set(
-            ai_result.get("missing_information", []) + 
-            rule_result.get("missing_information", [])
-        ))
-        
-        merged["suggestions"] = list(set(
-            ai_result.get("suggestions", []) + 
-            rule_result.get("suggestions", [])
-        ))
-        
-        return merged
+        try:
+            # 智能选择意图：优先使用非unknown的结果
+            ai_intent = ai_result.get("intent", "unknown")
+            rule_intent = rule_result.get("intent", "unknown")
+            
+            logger.debug(f"AI result: {ai_result}")
+            logger.debug(f"Rule result: {rule_result}")
+            
+            if ai_intent != "unknown":
+                final_intent = ai_intent
+            elif rule_intent != "unknown":
+                final_intent = rule_intent
+            else:
+                final_intent = "unknown"
+            
+            merged = {
+                "intent": final_intent,
+                "confidence": max(
+                    ai_result.get("confidence", 0.0),
+                    rule_result.get("confidence", 0.0)
+                ),
+                "entities": {},
+                "missing_information": [],
+                "suggestions": [],
+                "natural_response": ai_result.get("natural_response", "")
+            }
+            
+            # 融合实体信息
+            ai_entities = ai_result.get("entities", {})
+            rule_entities = rule_result.get("entities", {})
+            
+            # 时间信息优先使用AI结果，因为AI更擅长自然语言时间解析
+            if ai_entities.get("time"):
+                merged["entities"]["time"] = ai_entities["time"]
+            elif rule_entities.get("time"):
+                merged["entities"]["time"] = rule_entities["time"]
+            
+            # 其他实体信息取并集
+            for key in ["room_type", "visitor_info", "vehicle_info", "special_requirements"]:
+                if ai_entities.get(key):
+                    merged["entities"][key] = ai_entities[key]
+                elif rule_entities.get(key):
+                    merged["entities"][key] = rule_entities[key]
+            
+            # 合并缺失信息和建议
+            ai_missing = ai_result.get("missing_information", []) or []
+            rule_missing = rule_result.get("missing_information", []) or []
+            merged["missing_information"] = list(set(ai_missing + rule_missing))
+            
+            ai_suggestions = ai_result.get("suggestions", []) or []
+            rule_suggestions = rule_result.get("suggestions", []) or []
+            merged["suggestions"] = list(set(ai_suggestions + rule_suggestions))
+            
+            return merged
+            
+        except Exception as e:
+            logger.error(f"合并分析结果时出错: {e}, ai_result: {ai_result}, rule_result: {rule_result}")
+            # 返回规则分析结果作为备选
+            return rule_result
     
     def _validate_and_complete(
         self, 

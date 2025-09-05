@@ -56,10 +56,11 @@
                 <span>AI智能配置</span>
               </el-menu-item>
               
-              <el-menu-item index="voice">
+              <!-- 语音配置已禁用 -->
+              <!-- <el-menu-item index="voice">
                 <el-icon><Microphone /></el-icon>
                 <span>语音配置</span>
-              </el-menu-item>
+              </el-menu-item> -->
               
               <el-menu-item index="security">
                 <el-icon><Lock /></el-icon>
@@ -532,8 +533,9 @@
                         v-model="aiSettings.voiceInteraction"
                         active-text="开启"
                         inactive-text="关闭"
+                        :disabled="true"
                       />
-                      <div class="form-tip">启用语音识别和语音合成功能</div>
+                      <div class="form-tip">语音功能已禁用</div>
                     </el-form-item>
                   </el-form>
                 </el-card>
@@ -1478,6 +1480,72 @@ const systemInfo = reactive({
   memoryTotal: '2 GB'
 })
 
+// 加载设置数据
+const loadAllSettings = async () => {
+  try {
+    const response = await fetch('/api/settings/', {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      }
+    })
+    
+    if (response.ok) {
+      const result = await response.json()
+      if (result.success && result.data) {
+        const settings = result.data
+        
+        // 更新基础设置
+        if (settings.general) {
+          Object.assign(generalSettings, {
+            systemName: settings.general.system_name || '智能预约系统',
+            systemDescription: settings.general.system_description || '基于AI的智能预约管理系统',
+            defaultLanguage: settings.general.default_language || 'zh-CN',
+            timezone: settings.general.timezone || 'Asia/Shanghai',
+            themeMode: settings.general.theme_mode || 'light'
+          })
+        }
+        
+        // 更新预约设置
+        if (settings.reservation) {
+          Object.assign(reservationSettings, {
+            workingHours: settings.reservation.working_hours || ['09:00', '18:00'],
+            advanceBookingDays: settings.reservation.advance_booking_days || 30,
+            minDuration: settings.reservation.min_duration || 30,
+            maxDuration: settings.reservation.max_duration || 240,
+            autoApproval: settings.reservation.auto_approval || false,
+            cancellationDeadline: settings.reservation.cancellation_deadline || 2
+          })
+        }
+        
+        // 更新通知设置
+        if (settings.notification) {
+          Object.assign(notificationSettings, {
+            emailEnabled: settings.notification.email_enabled !== undefined ? settings.notification.email_enabled : true,
+            smsEnabled: settings.notification.sms_enabled || false,
+            pushEnabled: settings.notification.push_enabled !== undefined ? settings.notification.push_enabled : true,
+            reminderTimes: settings.notification.reminder_times || [15, 30, 60],
+            rateLimit: settings.notification.rate_limit || 10
+          })
+        }
+        
+        // 更新安全设置
+        if (settings.security) {
+          Object.assign(securitySettings, {
+            passwordPolicy: settings.security.password_policy || ['minLength', 'requireNumbers'],
+            sessionTimeout: settings.security.session_timeout || 120,
+            maxLoginAttempts: settings.security.max_login_attempts || 5,
+            lockoutDuration: settings.security.lockout_duration || 15,
+            twoFactorAuth: settings.security.two_factor_auth || false
+          })
+        }
+      }
+    }
+  } catch (error) {
+    console.error('加载设置失败:', error)
+  }
+}
+
 // 方法
 const handleMenuSelect = (index: string) => {
   activeTab.value = index
@@ -1504,10 +1572,59 @@ const saveAllSettings = async () => {
   saving.value = true
   
   try {
-    // 模拟保存API调用
-    await new Promise(resolve => setTimeout(resolve, 1000))
+    // 构建设置数据
+    const settingsData = {
+      general: {
+        system_name: generalSettings.systemName,
+        system_description: generalSettings.systemDescription,
+        default_language: generalSettings.defaultLanguage,
+        timezone: generalSettings.timezone,
+        theme_mode: generalSettings.themeMode
+      },
+      reservation: {
+        working_hours: reservationSettings.workingHours,
+        advance_booking_days: reservationSettings.advanceBookingDays,
+        min_duration: reservationSettings.minDuration,
+        max_duration: reservationSettings.maxDuration,
+        auto_approval: reservationSettings.autoApproval,
+        cancellation_deadline: reservationSettings.cancellationDeadline
+      },
+      notification: {
+        email_enabled: notificationSettings.emailEnabled,
+        sms_enabled: notificationSettings.smsEnabled,
+        push_enabled: notificationSettings.pushEnabled,
+        reminder_times: notificationSettings.reminderTimes,
+        rate_limit: notificationSettings.rateLimit
+      },
+      security: {
+        password_policy: securitySettings.passwordPolicy,
+        session_timeout: securitySettings.sessionTimeout,
+        max_login_attempts: securitySettings.maxLoginAttempts,
+        lockout_duration: securitySettings.lockoutDuration,
+        two_factor_auth: securitySettings.twoFactorAuth
+      }
+    }
     
-    ElMessage.success('设置保存成功')
+    // 调用后端API保存设置
+    const response = await fetch('/api/settings/', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      },
+      body: JSON.stringify({ settings: settingsData })
+    })
+    
+    if (!response.ok) {
+      throw new Error('保存失败')
+    }
+    
+    const result = await response.json()
+    if (result.success) {
+      ElMessage.success('设置保存成功')
+    } else {
+      throw new Error(result.message || '保存失败')
+    }
   } catch (error) {
     ElMessage.error('设置保存失败')
     console.error('保存设置失败:', error)
@@ -1712,9 +1829,26 @@ const saveModelConfig = async () => {
 const testASRConnection = async () => {
   asrTesting.value = true
   try {
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    ElMessage.success('语音识别连接测试成功')
+    const response = await fetch('/api/voice-config/test-connection', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      },
+      body: JSON.stringify({
+        provider: 'xunfei',
+        config: voiceConfig.xunfei.asr
+      })
+    })
+    
+    const result = await response.json()
+    if (result.success) {
+      ElMessage.success(result.message || '语音识别连接测试成功')
+    } else {
+      ElMessage.error(result.message || '语音识别连接测试失败')
+    }
   } catch (error) {
+    console.error('ASR连接测试失败:', error)
     ElMessage.error('语音识别连接测试失败')
   } finally {
     asrTesting.value = false
@@ -1724,9 +1858,29 @@ const testASRConnection = async () => {
 const saveASRConfig = async () => {
   asrSaving.value = true
   try {
-    await new Promise(resolve => setTimeout(resolve, 800))
-    ElMessage.success('语音识别配置保存成功')
+    const response = await fetch('/api/voice-config/config', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      },
+      body: JSON.stringify({
+        xunfei: {
+          appId: voiceConfig.xunfei.asr.appId,
+          apiKey: voiceConfig.xunfei.asr.apiKey,
+          apiSecret: voiceConfig.xunfei.asr.apiSecret
+        }
+      })
+    })
+    
+    const result = await response.json()
+    if (result.success) {
+      ElMessage.success('语音识别配置保存成功')
+    } else {
+      ElMessage.error(result.message || '语音识别配置保存失败')
+    }
   } catch (error) {
+    console.error('保存ASR配置失败:', error)
     ElMessage.error('语音识别配置保存失败')
   } finally {
     asrSaving.value = false
@@ -1736,9 +1890,50 @@ const saveASRConfig = async () => {
 const testTTSConnection = async () => {
   ttsTesting.value = true
   try {
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    ElMessage.success('语音合成连接测试成功')
+    // 检查科大讯飞TTS配置是否完整
+    const hasXunfeiConfig = voiceConfig.xunfei.tts.appId && 
+                           voiceConfig.xunfei.tts.apiKey && 
+                           voiceConfig.xunfei.tts.apiSecret
+    
+    let requestBody
+    
+    if (hasXunfeiConfig) {
+      // 使用科大讯飞TTS
+      requestBody = {
+        provider: 'xunfei',
+        app_id: voiceConfig.xunfei.tts.appId,
+        api_key: voiceConfig.xunfei.tts.apiKey,
+        api_secret: voiceConfig.xunfei.tts.apiSecret,
+        text: '你好，这是科大讯飞语音合成测试。'
+      }
+    } else {
+      // 使用通义千问TTS
+      requestBody = {
+        provider: 'qwen',
+        api_key: aiSettings.qwen.apiKey || '',
+        base_url: 'https://dashscope.aliyuncs.com/api/v1',
+        text: '你好，这是通义千问语音合成测试。'
+      }
+    }
+    
+    const response = await fetch('/api/voice-config/test-tts', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      },
+      body: JSON.stringify(requestBody)
+    })
+    
+    const result = await response.json()
+    if (result.success) {
+      const provider = result.provider === 'xunfei' ? '科大讯飞' : '通义千问'
+      ElMessage.success(`${provider}语音合成测试成功！${result.details || ''}`)
+    } else {
+      ElMessage.error(result.message || '语音合成连接测试失败')
+    }
   } catch (error) {
+    console.error('TTS连接测试失败:', error)
     ElMessage.error('语音合成连接测试失败')
   } finally {
     ttsTesting.value = false
@@ -1748,9 +1943,34 @@ const testTTSConnection = async () => {
 const saveTTSConfig = async () => {
   ttsSaving.value = true
   try {
-    await new Promise(resolve => setTimeout(resolve, 800))
-    ElMessage.success('语音合成配置保存成功')
+    const response = await fetch('/api/voice-config/config', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      },
+      body: JSON.stringify({
+        api: {
+          apiKey: voiceConfig.xunfei.tts.apiKey,
+          baseUrl: 'https://dashscope.aliyuncs.com/api/v1'
+        },
+        tts: {
+          voice: voiceConfig.xunfei.tts.voice,
+          speed: voiceConfig.xunfei.tts.speed / 100,
+          volume: voiceConfig.xunfei.tts.volume / 100,
+          pitch: voiceConfig.xunfei.tts.pitch / 100
+        }
+      })
+    })
+    
+    const result = await response.json()
+    if (result.success) {
+      ElMessage.success('语音合成配置保存成功')
+    } else {
+      ElMessage.error(result.message || '语音合成配置保存失败')
+    }
   } catch (error) {
+    console.error('保存TTS配置失败:', error)
     ElMessage.error('语音合成配置保存失败')
   } finally {
     ttsSaving.value = false
@@ -1760,21 +1980,110 @@ const saveTTSConfig = async () => {
 const testVoiceConnection = async () => {
   voiceTesting.value = true
   try {
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    ElMessage.success('语音服务连接测试成功')
+    const response = await fetch('/api/voice-config/test-connection', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      },
+      body: JSON.stringify({
+        provider: 'xunfei',
+        config: voiceConfig.xunfei.asr
+      })
+    })
+    
+    const result = await response.json()
+    if (result.success) {
+      ElMessage.success(result.message || '语音服务连接测试成功')
+    } else {
+      ElMessage.error(result.message || '语音服务连接测试失败')
+    }
   } catch (error) {
+    console.error('语音服务连接测试失败:', error)
     ElMessage.error('语音服务连接测试失败')
   } finally {
     voiceTesting.value = false
   }
 }
 
+// 加载语音配置
+const loadVoiceConfig = async () => {
+  try {
+    const response = await fetch('/api/voice-config/config?show_keys=true', {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      }
+    })
+    
+    if (response.ok) {
+      const result = await response.json()
+      if (result.success) {
+        // 更新科大讯飞配置
+        if (result.xunfei) {
+          voiceConfig.xunfei.asr.appId = result.xunfei.appId || ''
+          voiceConfig.xunfei.asr.apiKey = result.xunfei.apiKey || ''
+          voiceConfig.xunfei.asr.apiSecret = result.xunfei.apiSecret || ''
+          voiceConfig.xunfei.tts.appId = result.xunfei.appId || ''
+          voiceConfig.xunfei.tts.apiKey = result.xunfei.apiKey || ''
+          voiceConfig.xunfei.tts.apiSecret = result.xunfei.apiSecret || ''
+        }
+        
+        // 更新通义千问API配置
+        if (result.api && result.api.apiKey) {
+          voiceConfig.xunfei.tts.apiKey = result.api.apiKey
+        }
+        
+        // 更新TTS配置
+        if (result.tts) {
+          voiceConfig.xunfei.tts.voice = result.tts.voice || 'xiaoyan'
+          voiceConfig.xunfei.tts.speed = (result.tts.speed || 0.5) * 100
+          voiceConfig.xunfei.tts.volume = (result.tts.volume || 0.5) * 100
+          voiceConfig.xunfei.tts.pitch = (result.tts.pitch || 0.5) * 100
+        }
+      }
+    }
+  } catch (error) {
+    console.error('加载语音配置失败:', error)
+  }
+}
+
 const saveVoiceConfig = async () => {
   voiceSaving.value = true
   try {
-    await new Promise(resolve => setTimeout(resolve, 800))
-    ElMessage.success('语音配置保存成功')
+    const response = await fetch('/api/voice-config/config', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      },
+      body: JSON.stringify({
+        xunfei: {
+          appId: voiceConfig.xunfei.asr.appId,
+          apiKey: voiceConfig.xunfei.asr.apiKey,
+          apiSecret: voiceConfig.xunfei.asr.apiSecret
+        },
+        api: {
+          apiKey: voiceConfig.xunfei.tts.apiKey,
+          baseUrl: 'https://dashscope.aliyuncs.com/api/v1'
+        },
+        tts: {
+          voice: voiceConfig.xunfei.tts.voice,
+          speed: voiceConfig.xunfei.tts.speed / 100,
+          volume: voiceConfig.xunfei.tts.volume / 100,
+          pitch: voiceConfig.xunfei.tts.pitch / 100
+        }
+      })
+    })
+    
+    const result = await response.json()
+    if (result.success) {
+      ElMessage.success('语音配置保存成功')
+    } else {
+      ElMessage.error(result.message || '语音配置保存失败')
+    }
   } catch (error) {
+    console.error('保存语音配置失败:', error)
     ElMessage.error('语音配置保存失败')
   } finally {
     voiceSaving.value = false
@@ -1882,8 +2191,12 @@ const testAIConnection = async () => {
 onMounted(async () => {
   // 初始化设置数据
   refreshSystemInfo()
+  // 加载所有设置
+  await loadAllSettings()
   // 加载AI配置
   await loadAIConfig()
+  // 加载语音配置
+  await loadVoiceConfig()
 })
 </script>
 

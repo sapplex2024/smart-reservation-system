@@ -6,8 +6,8 @@
         <div class="header-left">
           <el-icon class="header-icon"><Calendar /></el-icon>
           <div>
-            <h1 class="page-title">预约管理</h1>
-            <p class="page-subtitle">管理您的会议室、访客和停车位预约</p>
+            <h1 class="page-title">会议室预约管理</h1>
+            <p class="page-subtitle">管理您的会议室预约</p>
           </div>
         </div>
         <div class="header-actions">
@@ -31,30 +31,6 @@
           <div class="stat-info">
             <div class="stat-number">{{ stats.meeting }}</div>
             <div class="stat-label">会议室预约</div>
-          </div>
-        </div>
-      </el-card>
-      
-      <el-card class="stat-card" shadow="hover">
-        <div class="stat-content">
-          <div class="stat-icon visitor">
-            <el-icon><User /></el-icon>
-          </div>
-          <div class="stat-info">
-            <div class="stat-number">{{ stats.visitor }}</div>
-            <div class="stat-label">访客预约</div>
-          </div>
-        </div>
-      </el-card>
-      
-      <el-card class="stat-card" shadow="hover">
-        <div class="stat-content">
-          <div class="stat-icon vehicle">
-            <el-icon><Van /></el-icon>
-          </div>
-          <div class="stat-info">
-            <div class="stat-number">{{ stats.vehicle }}</div>
-            <div class="stat-label">车辆入园预约</div>
           </div>
         </div>
       </el-card>
@@ -93,8 +69,6 @@
           >
             <el-option label="全部" value="" />
             <el-option label="会议室" value="meeting" />
-            <el-option label="访客" value="visitor" />
-            <el-option label="车辆入园" value="vehicle" />
           </el-select>
           <el-select
             v-model="filterStatus"
@@ -214,8 +188,6 @@
         <el-form-item label="预约类型" prop="type">
           <el-select v-model="createForm.type" placeholder="请选择预约类型">
             <el-option label="会议室" value="meeting" />
-            <el-option label="访客" value="visitor" />
-            <el-option label="车辆入园" value="vehicle" />
           </el-select>
         </el-form-item>
         

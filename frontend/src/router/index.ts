@@ -6,6 +6,8 @@ import ReportsView from '../views/ReportsView.vue'
 import SettingsView from '../views/SettingsView.vue'
 import LogsView from '../views/LogsView.vue'
 import LoginView from '../views/LoginView.vue'
+import ProfileView from '../views/ProfileView.vue'
+
 
 import { useAuthStore } from '../stores/auth'
 
@@ -62,7 +64,11 @@ const router = createRouter({
       name: 'logs',
       component: LogsView
     },
-
+    {
+      path: '/profile',
+      name: 'profile',
+      component: ProfileView
+    }
   ]
 })
 

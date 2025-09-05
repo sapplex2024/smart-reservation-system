@@ -13,6 +13,7 @@
                 <el-icon><ChatDotRound /></el-icon>
                 对话
               </router-link>
+
               <router-link to="/reservation" class="nav-link">预约</router-link>
               <router-link to="/notifications" class="nav-link">
                 <el-icon><Bell /></el-icon>
@@ -77,7 +78,7 @@
 <script setup lang="ts">
 import { onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { ChatDotRound, Bell, DataAnalysis, Setting, Document, User, ArrowDown, SwitchButton } from '@element-plus/icons-vue'
+import { ChatDotRound, Bell, DataAnalysis, Setting, Document, User, ArrowDown, SwitchButton, Microphone } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { useAuthStore } from './stores/auth'
 
@@ -89,8 +90,7 @@ const handleUserCommand = (command: string) => {
   if (command === 'logout') {
     handleLogout()
   } else if (command === 'profile') {
-    // 可以添加个人资料页面
-    ElMessage.info('个人资料功能开发中')
+    router.push('/profile')
   }
 }
 

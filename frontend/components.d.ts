@@ -52,9 +52,7 @@ declare module 'vue' {
     MeetingReservationPanel: typeof import('./src/components/MeetingReservationPanel.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
-    SmartVoiceRecorder: typeof import('./src/components/SmartVoiceRecorder.vue')['default']
     UnifiedInputInterface: typeof import('./src/components/UnifiedInputInterface.vue')['default']
-    VoiceControl: typeof import('./src/components/VoiceControl.vue')['default']
   }
   export interface ComponentCustomProperties {
     vLoading: typeof import('element-plus/es')['ElLoadingDirective']

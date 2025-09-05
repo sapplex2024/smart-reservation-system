@@ -131,7 +131,7 @@ export function useSettings() {
       }
     },
     ai: {
-      provider: 'qwen',
+      provider: 'xunfei',
       api_key: '',
       model: 'qwen-turbo',
       temperature: 0.7,
@@ -183,7 +183,7 @@ export function useSettings() {
       loading.value = true
       error.value = null
       
-      const response = await fetch('/api/settings', {
+      const response = await fetch('/api/settings/', {
         headers: {
           'Authorization': `Bearer ${authStore.token}`
         }

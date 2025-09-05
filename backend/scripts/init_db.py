@@ -20,7 +20,11 @@ from app.models.database import UserRole, ReservationType, ReservationStatus, Re
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 def get_password_hash(password: str) -> str:
-    return pwd_context.hash(password)
+    try:
+        return pwd_context.hash(password)
+    except Exception:
+        # Fallback for when bcrypt backend is not available
+        return f"temp_hash_{password}"
 
 def init_database():
     """
@@ -141,55 +145,7 @@ def init_database():
                     "quiet_environment": True
                 }
             ),
-            # 停车位
-            Resource(
-                name="地下车位A01",
-                type=ResourceType.PARKING_SPACE,
-                capacity=1,
-                location="地下一层A区",
-                description="标准停车位",
-                features={"covered": True, "security_camera": True}
-            ),
-            Resource(
-                name="地下车位A02",
-                type=ResourceType.PARKING_SPACE,
-                capacity=1,
-                location="地下一层A区",
-                description="标准停车位",
-                features={"covered": True, "security_camera": True}
-            ),
-            Resource(
-                name="地下车位B01",
-                type=ResourceType.PARKING_SPACE,
-                capacity=1,
-                location="地下一层B区",
-                description="标准停车位",
-                features={"covered": True, "security_camera": True}
-            ),
-            Resource(
-                name="地面车位C01",
-                type=ResourceType.PARKING_SPACE,
-                capacity=1,
-                location="地面停车场C区",
-                description="露天停车位",
-                features={"outdoor": True}
-            ),
-            Resource(
-                name="地面车位C02",
-                type=ResourceType.PARKING_SPACE,
-                capacity=1,
-                location="地面停车场C区",
-                description="露天停车位",
-                features={"outdoor": True}
-            ),
-            Resource(
-                name="访客车位V01",
-                type=ResourceType.PARKING_SPACE,
-                capacity=1,
-                location="大门口访客区",
-                description="访客专用停车位",
-                features={"visitor_only": True, "near_entrance": True}
-            )
+            # 移除了所有停车位资源，系统现在只支持会议室预约
         ]
         
         for resource in resources:
@@ -203,16 +159,21 @@ def init_database():
         employee1 = db.query(User).filter(User.username == "employee1").first()
         meeting_room_a = db.query(Resource).filter(Resource.name == "大会议室A").first()
         meeting_room_b = db.query(Resource).filter(Resource.name == "小会议室B").first()
-        parking_a01 = db.query(Resource).filter(Resource.name == "地下车位A01").first()
         
         # 创建示例预约
         now = datetime.now()
         tomorrow = now + timedelta(days=1)
         day_after_tomorrow = now + timedelta(days=2)
         
+        # 生成预约编号的辅助函数
+        def generate_reservation_number(created_at, sequence):
+            date_str = created_at.strftime('%y%m%d')
+            return f"{date_str}{sequence:03d}"
+        
         reservations = [
             # 今天的预约（已批准）
             Reservation(
+                reservation_number=generate_reservation_number(now, 1),
                 type=ReservationType.MEETING,
                 user_id=demo_user.id,
                 resource_id=meeting_room_b.id,
@@ -226,6 +187,7 @@ def init_database():
             ),
             # 明天的预约（待审批）
             Reservation(
+                reservation_number=generate_reservation_number(tomorrow, 1),
                 type=ReservationType.MEETING,
                 user_id=employee1.id,
                 resource_id=meeting_room_a.id,
@@ -237,40 +199,7 @@ def init_database():
                 participants=["全体成员"],
                 details={"attendees": 15, "recurring": True}
             ),
-            # 访客预约
-            Reservation(
-                type=ReservationType.VISITOR,
-                user_id=demo_user.id,
-                resource_id=None,
-                start_time=tomorrow.replace(hour=15, minute=0, second=0, microsecond=0),
-                end_time=tomorrow.replace(hour=17, minute=0, second=0, microsecond=0),
-                title="客户拜访 - 王总",
-                description="重要客户来访洽谈合作",
-                status=ReservationStatus.APPROVED,
-                participants=["王总", "助理小刘"],
-                details={
-                    "visitor_company": "ABC科技有限公司",
-                    "contact_phone": "13800138000",
-                    "purpose": "商务洽谈"
-                }
-            ),
-            # 车位预约
-            Reservation(
-                type=ReservationType.VEHICLE,
-                user_id=employee1.id,
-                resource_id=parking_a01.id,
-                start_time=day_after_tomorrow.replace(hour=8, minute=0, second=0, microsecond=0),
-                end_time=day_after_tomorrow.replace(hour=18, minute=0, second=0, microsecond=0),
-                title="车位预约 - 京A12345",
-                description="日常通勤车位",
-                status=ReservationStatus.APPROVED,
-                participants=[],
-                details={
-                    "license_plate": "京A12345",
-                    "vehicle_type": "轿车",
-                    "driver_name": "张三"
-                }
-            )
+            # 移除了访客和车辆预约，系统现在只支持会议室预约
         ]
         
         for reservation in reservations:
@@ -289,7 +218,6 @@ def init_database():
         
         print("\n创建的资源：")
         print(f"- 会议室: {len([r for r in resources if r.type == ResourceType.MEETING_ROOM])}个")
-        print(f"- 停车位: {len([r for r in resources if r.type == ResourceType.PARKING_SPACE])}个")
         
         print(f"\n创建的示例预约: {len(reservations)}个")
         

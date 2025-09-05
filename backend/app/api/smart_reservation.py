@@ -5,6 +5,7 @@ from datetime import datetime
 from app.services.smart_intent_service import SmartIntentService
 from app.services.reservation_service import ReservationService
 from app.services.ai_service import AIService
+from app.services.enhanced_llm_service import EnhancedLLMService
 from app.api.auth import get_current_user
 from app.models.database import User
 import logging
@@ -293,13 +294,79 @@ async def _test_single_provider(request: AITestRequest, provider: str, start_tim
             "details": str(e)
         }
 
+@router.post("/enhanced-chat")
+async def enhanced_smart_chat(
+    request: SmartReservationRequest,
+    current_user: User = Depends(get_current_user)
+) -> Dict[str, Any]:
+    """增强的智能预约对话接口，支持Function Calling和上下文记忆"""
+    try:
+        # 初始化增强LLM服务
+        enhanced_llm_service = EnhancedLLMService()
+        
+        # 使用增强LLM服务进行对话
+        result = await enhanced_llm_service.chat_with_context(
+            user_id=str(current_user.id),
+            message=request.message,
+            user_context={
+                "username": current_user.username,
+                "use_voice": request.use_voice,
+                "conversation_history": request.conversation_history
+            }
+        )
+        
+        return {
+            "success": result["success"],
+            "message": result["response"],
+            "reservation_completed": result.get("function_called") in ["create_reservation", "modify_reservation"],
+            "reservation_data": result.get("function_result", {}).get("data"),
+            "generate_speech": request.use_voice,
+            "next_questions": [
+                "预约会议室",
+                "查看我的预约", 
+                "取消预约",
+                "修改预约时间"
+            ],
+            "confidence": 0.9 if result["success"] else 0.3,
+            "function_called": result.get("function_called"),
+            "conversation_id": result.get("conversation_id"),
+            "enhanced_mode": True
+        }
+        
+    except Exception as e:
+        logger.error(f"增强智能对话失败: {e}")
+        return {
+            "success": False,
+            "message": "抱歉，智能服务暂时不可用，请稍后再试。",
+            "generate_speech": request.use_voice,
+            "enhanced_mode": False
+        }
+
 @router.post("/chat", response_model=SmartReservationResponse)
 async def smart_reservation_chat(
     request: SmartReservationRequest,
     current_user: User = Depends(get_current_user)
 ):
-    """智能语音预约对话接口"""
+    """智能语音预约对话接口（原版，保持向后兼容）"""
     try:
+        # 首先尝试使用增强LLM服务
+        try:
+            enhanced_result = await enhanced_smart_chat(request, current_user)
+            if enhanced_result["success"]:
+                # 转换为原有响应格式
+                return SmartReservationResponse(
+                    success=enhanced_result["success"],
+                    message=enhanced_result["message"],
+                    reservation_completed=enhanced_result.get("reservation_completed", False),
+                    reservation_data=enhanced_result.get("reservation_data"),
+                    generate_speech=enhanced_result.get("generate_speech", False),
+                    next_questions=enhanced_result.get("next_questions", []),
+                    confidence=enhanced_result.get("confidence", 0.8)
+                )
+        except Exception as e:
+            logger.warning(f"增强LLM服务失败，降级到原有逻辑: {e}")
+        
+        # 降级到原有逻辑
         # 初始化服务
         smart_intent_service = SmartIntentService()
         reservation_service = ReservationService()
@@ -492,3 +559,43 @@ async def generate_completion_prompt(
         return f"我还需要以下信息：\n" + "\n".join([f"• {prompt}" for prompt in prompt_list])
     else:
         return "请提供更完整的预约信息，包括时间、会议室类型、访客详情等。"
+
+@router.post("/clear-conversation")
+async def clear_conversation(
+    current_user: User = Depends(get_current_user)
+) -> Dict[str, Any]:
+    """清除用户对话历史"""
+    try:
+        enhanced_llm_service = EnhancedLLMService()
+        enhanced_llm_service.clear_conversation(str(current_user.id))
+        
+        return {
+            "success": True,
+            "message": "对话历史已清除"
+        }
+    except Exception as e:
+        logger.error(f"清除对话历史失败: {e}")
+        return {
+            "success": False,
+            "message": "清除对话历史失败"
+        }
+
+@router.get("/conversation-summary")
+async def get_conversation_summary(
+    current_user: User = Depends(get_current_user)
+) -> Dict[str, Any]:
+    """获取用户对话摘要"""
+    try:
+        enhanced_llm_service = EnhancedLLMService()
+        summary = enhanced_llm_service.get_conversation_summary(str(current_user.id))
+        
+        return {
+            "success": True,
+            "data": summary
+        }
+    except Exception as e:
+        logger.error(f"获取对话摘要失败: {e}")
+        return {
+            "success": False,
+            "message": "获取对话摘要失败"
+        }

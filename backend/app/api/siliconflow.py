@@ -148,7 +148,7 @@ async def get_available_models(
     current_user: dict = Depends(get_current_user)
 ):
     """获取硅基流动支持的模型列表"""
-    if current_user.get("role") != "admin":
+    if current_user.get("role") != "ADMIN":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="只有管理员可以访问模型管理"

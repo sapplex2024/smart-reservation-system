@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>报表测试工具</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, button {
+            padding: 10px;
+            margin: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .log {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 15px;
+            margin-top: 10px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+        .success {
+            color: #28a745;
+        }
+        .error {
+            color: #dc3545;
+        }
+        .info {
+            color: #17a2b8;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>报表功能测试工具</h1>
+        
+        <div class="section">
+            <h2>1. 检查登录状态</h2>
+            <button onclick="checkAuthStatus()">检查当前登录状态</button>
+            <button onclick="clearToken()">清除Token</button>
+            <div id="authResult" class="log"></div>
+        </div>
+        
+        <div class="section">
+            <h2>2. 快速登录</h2>
+            <div class="form-group">
+                <label for="username">用户名:</label>
+                <input type="text" id="username" value="admin">
+            </div>
+            <div class="form-group">
+                <label for="password">密码:</label>
+                <input type="password" id="password" value="admin123">
+            </div>
+            <button onclick="quickLogin()">快速登录</button>
+            <div id="loginResult" class="log"></div>
+        </div>
+        
+        <div class="section">
+            <h2>3. 测试报表API</h2>
+            <button onclick="testQuickStats()">测试快速统计</button>
+            <button onclick="testStatistics()">测试详细统计</button>
+            <div id="reportsResult" class="log"></div>
+        </div>
+    </div>
+
+    <script>
+        function log(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type === 'error' ? 'error' : type === 'success' ? 'success' : 'info';
+            element.innerHTML += `<span class="${className}">[${timestamp}] ${message}</span>\n`;
+            element.scrollTop = element.scrollHeight;
+        }
+        
+        function clearLog(elementId) {
+            document.getElementById(elementId).innerHTML = '';
+        }
+        
+        async function checkAuthStatus() {
+            clearLog('authResult');
+            const token = localStorage.getItem('token');
+            
+            if (!token) {
+                log('authResult', '❌ 没有找到Token，用户未登录', 'error');
+                return;
+            }
+            
+            log('authResult', `✅ 找到Token: ${token.substring(0, 50)}...`, 'success');
+            
+            try {
+                const response = await fetch('/api/auth/me', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                log('authResult', `认证检查响应: ${response.status} ${response.statusText}`);
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    log('authResult', `❌ 认证失败: ${errorText}`, 'error');
+                    return;
+                }
+                
+                const userData = await response.json();
+                log('authResult', `✅ 认证成功!`, 'success');
+                log('authResult', `用户信息: ${JSON.stringify(userData, null, 2)}`);
+                
+            } catch (error) {
+                log('authResult', `❌ 认证检查失败: ${error.message}`, 'error');
+            }
+        }
+        
+        function clearToken() {
+            localStorage.removeItem('token');
+            log('authResult', '🗑️ Token已清除', 'info');
+        }
+        
+        async function quickLogin() {
+            clearLog('loginResult');
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            log('loginResult', `🔐 开始登录: ${username}`);
+            
+            try {
+                const formData = new FormData();
+                formData.append('username', username);
+                formData.append('password', password);
+                
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                log('loginResult', `响应状态: ${response.status} ${response.statusText}`);
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    log('loginResult', `❌ 登录失败: ${errorText}`, 'error');
+                    return;
+                }
+                
+                const data = await response.json();
+                log('loginResult', `✅ 登录成功!`, 'success');
+                log('loginResult', `用户: ${data.user.full_name} (${data.user.role})`);
+                log('loginResult', `Token: ${data.access_token.substring(0, 50)}...`);
+                
+                // 保存token
+                localStorage.setItem('token', data.access_token);
+                log('loginResult', '💾 Token已保存到localStorage', 'success');
+                
+            } catch (error) {
+                log('loginResult', `❌ 登录失败: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testQuickStats() {
+            clearLog('reportsResult');
+            const token = localStorage.getItem('token');
+            
+            if (!token) {
+                log('reportsResult', '❌ 请先登录', 'error');
+                return;
+            }
+            
+            log('reportsResult', '📊 测试快速统计API...');
+            
+            try {
+                const response = await fetch('/api/reports/quick-stats', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                log('reportsResult', `响应状态: ${response.status} ${response.statusText}`);
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    log('reportsResult', `❌ API调用失败: ${errorText}`, 'error');
+                    return;
+                }
+                
+                const data = await response.json();
+                log('reportsResult', `✅ 快速统计成功!`, 'success');
+                log('reportsResult', `数据: ${JSON.stringify(data, null, 2)}`);
+                
+            } catch (error) {
+                log('reportsResult', `❌ 快速统计失败: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testStatistics() {
+            clearLog('reportsResult');
+            const token = localStorage.getItem('token');
+            
+            if (!token) {
+                log('reportsResult', '❌ 请先登录', 'error');
+                return;
+            }
+            
+            log('reportsResult', '📈 测试详细统计API...');
+            
+            try {
+                const response = await fetch('/api/reports/statistics', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                log('reportsResult', `响应状态: ${response.status} ${response.statusText}`);
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    log('reportsResult', `❌ API调用失败: ${errorText}`, 'error');
+                    return;
+                }
+                
+                const data = await response.json();
+                log('reportsResult', `✅ 详细统计成功!`, 'success');
+                log('reportsResult', `数据: ${JSON.stringify(data, null, 2)}`);
+                
+            } catch (error) {
+                log('reportsResult', `❌ 详细统计失败: ${error.message}`, 'error');
+            }
+        }
+        
+        // 页面加载时检查状态
+        window.onload = function() {
+            const token = localStorage.getItem('token');
+            if (token) {
+                log('authResult', `🔍 页面加载时发现Token: ${token.substring(0, 50)}...`);
+            } else {
+                log('authResult', '⚠️ 页面加载时未发现Token，需要登录');
+            }
+        };
+    </script>
+</body>
+</html>

@@ -1,3 +1,5 @@
+version: '3.8'
+
 services:
   # 后端开发服务
   backend:
@@ -14,7 +16,6 @@ services:
       - ACCESS_TOKEN_EXPIRE_MINUTES=30
       - DEVELOPMENT=true
       - DEBUG=true
-      - REDIS_URL=redis://redis:6379
     volumes:
       - ./backend:/app
       - ./backend/reservations.db:/app/reservations.db
@@ -22,8 +23,6 @@ services:
     networks:
       - smart-reservation-network
     restart: unless-stopped
-    depends_on:
-      - redis
     command: python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
   # Redis服务
@@ -32,8 +31,6 @@ services:
     container_name: smart-reservation-redis-dev
     ports:
       - "6379:6379"
-    volumes:
-      - redis_data:/data
     networks:
       - smart-reservation-network
     restart: unless-stopped
@@ -41,6 +38,3 @@ services:
 networks:
   smart-reservation-network:
     driver: bridge
-
-volumes:
-  redis_data:

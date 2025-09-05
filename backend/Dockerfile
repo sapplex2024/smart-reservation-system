@@ -1,6 +1,13 @@
 # 使用官方Python运行时作为基础镜像
 FROM python:3.11-slim
 
+# 添加系统依赖（支持pandas等包的安装）
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    libc-dev \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
 # 设置工作目录
 WORKDIR /app
 
@@ -10,13 +17,11 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1
 
-# 跳过系统依赖安装，使用预编译的包
-
-# 复制requirements文件
-COPY requirements.txt .
+# 复制极端简化的requirements-ultra-minimal.txt文件
+COPY requirements-ultra-minimal.txt .
 
 # 安装Python依赖
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements-ultra-minimal.txt
 
 # 复制应用代码
 COPY . .

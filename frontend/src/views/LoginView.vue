@@ -125,6 +125,22 @@
           />
         </el-form-item>
         
+        <el-form-item label="公司名称" prop="company_name">
+          <el-input 
+            v-model="registerForm.company_name" 
+            placeholder="请输入公司名称"
+            clearable
+          />
+        </el-form-item>
+        
+        <el-form-item label="联系电话" prop="phone">
+          <el-input 
+            v-model="registerForm.phone" 
+            placeholder="请输入联系电话"
+            clearable
+          />
+        </el-form-item>
+        
         <el-form-item label="密码" prop="password">
           <el-input 
             v-model="registerForm.password" 
@@ -190,6 +206,8 @@ const registerForm = reactive({
   username: '',
   email: '',
   full_name: '',
+  company_name: '',
+  phone: '',
   password: '',
   confirmPassword: ''
 })
@@ -223,6 +241,13 @@ const registerRules: FormRules = {
   ],
   full_name: [
     { required: true, message: '请输入全名', trigger: 'blur' }
+  ],
+  company_name: [
+    { required: true, message: '请输入公司名称', trigger: 'blur' }
+  ],
+  phone: [
+    { required: true, message: '请输入联系电话', trigger: 'blur' },
+    { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号码', trigger: 'blur' }
   ],
   password: [
     { required: true, message: '请输入密码', trigger: 'blur' },
@@ -278,6 +303,8 @@ const handleRegister = async () => {
       username: registerForm.username,
       email: registerForm.email,
       full_name: registerForm.full_name,
+      company_name: registerForm.company_name,
+      phone: registerForm.phone,
       password: registerForm.password
     })
     

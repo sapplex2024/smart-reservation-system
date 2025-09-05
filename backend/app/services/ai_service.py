@@ -2,61 +2,20 @@ from openai import OpenAI
 from typing import Dict, Any, Optional
 import json
 from app.core.config import settings
-from app.services.qwen_service import QwenService
-from app.services.siliconflow_service import siliconflow_service
 
 class AIService:
     def __init__(self):
-        # 优先使用通义千问服务
-        self.qwen_service = QwenService()
-        
-        # 硅基流动服务
-        self.siliconflow_service = siliconflow_service
-        
-        # OpenAI作为备用
+        # OpenAI服务
         self.openai_client = None
         if settings.OPENAI_API_KEY:
             self.openai_client = OpenAI(api_key=settings.OPENAI_API_KEY)
     
     async def generate_response(self, message: str, context: Optional[Dict[str, Any]] = None) -> str:
         """
-        生成AI回复 - 优先使用通义千问，然后硅基流动，最后回退到OpenAI
+        生成AI回复 - 使用OpenAI
         """
-        # 首先尝试通义千问
-        if settings.QWEN_API_KEY:
-            try:
-                response = await self.qwen_service.generate_response(message, context)
-                if response and not response.startswith("感谢您的咨询"):  # 不是fallback回复
-                    return response
-            except Exception as e:
-                print(f"通义千问服务错误，尝试硅基流动服务: {e}")
         
-        # 尝试硅基流动
-        if self.siliconflow_service.api_key:
-            try:
-                # 构建系统提示
-                system_prompt = self._build_system_prompt(context)
-                
-                messages = [
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": message}
-                ]
-                
-                response = await self.siliconflow_service.chat_completion(
-                    messages=messages,
-                    max_tokens=500,
-                    temperature=0.7
-                )
-                
-                if response and response.get("choices"):
-                    content = response["choices"][0]["message"]["content"]
-                    if content and content.strip():
-                        return content.strip()
-                        
-            except Exception as e:
-                print(f"硅基流动服务错误，尝试OpenAI备用服务: {e}")
-        
-        # 回退到OpenAI
+        # 使用OpenAI
         if self.openai_client:
             try:
                 # 构建系统提示

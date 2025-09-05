@@ -202,7 +202,7 @@ class ReportService:
             Reservation.type,
             Reservation.status,
             Reservation.start_time,
-            Reservation.duration,
+            Reservation.end_time,
             Reservation.description,
             Reservation.created_at,
             Reservation.updated_at,
@@ -223,7 +223,7 @@ class ReportService:
         if user_id:
             query = query.filter(Reservation.user_id == user_id)
         
-        if status_filter:
+        if status_filter and len(status_filter) > 0:
             query = query.filter(Reservation.status.in_(status_filter))
         
         # 执行查询
@@ -232,12 +232,19 @@ class ReportService:
         # 转换为DataFrame
         data = []
         for res in reservations:
+            # 计算持续时间（分钟）
+            duration_minutes = 0
+            if res.start_time and res.end_time:
+                duration = res.end_time - res.start_time
+                duration_minutes = int(duration.total_seconds() / 60)
+            
             data.append({
                 '预约ID': res.id,
                 '预约类型': res.type.value if res.type else '',
                 '预约状态': res.status.value if res.status else '',
-                '预约时间': res.start_time.strftime('%Y-%m-%d %H:%M:%S') if res.start_time else '',
-                '持续时间(分钟)': res.duration,
+                '开始时间': res.start_time.strftime('%Y-%m-%d %H:%M:%S') if res.start_time else '',
+                '结束时间': res.end_time.strftime('%Y-%m-%d %H:%M:%S') if res.end_time else '',
+                '持续时间(分钟)': duration_minutes,
                 '描述': res.description or '',
                 '用户名': res.username,
                 '用户姓名': res.full_name,
@@ -306,7 +313,7 @@ class ReportService:
             Reservation.type,
             Reservation.status,
             Reservation.start_time,
-            Reservation.duration,
+            Reservation.end_time,
             Reservation.description,
             Reservation.created_at,
             User.username,
@@ -324,7 +331,7 @@ class ReportService:
         if user_id:
             query = query.filter(Reservation.user_id == user_id)
         
-        if status_filter:
+        if status_filter and len(status_filter) > 0:
             query = query.filter(Reservation.status.in_(status_filter))
         
         reservations = query.order_by(Reservation.created_at.desc()).all()
@@ -332,12 +339,19 @@ class ReportService:
         # 转换为DataFrame
         data = []
         for res in reservations:
+            # 计算持续时间（分钟）
+            duration_minutes = 0
+            if res.start_time and res.end_time:
+                duration = res.end_time - res.start_time
+                duration_minutes = int(duration.total_seconds() / 60)
+            
             data.append({
                 '预约ID': res.id,
                 '预约类型': res.type.value if res.type else '',
                 '预约状态': res.status.value if res.status else '',
-                '预约时间': res.start_time.strftime('%Y-%m-%d %H:%M:%S') if res.start_time else '',
-                '持续时间(分钟)': res.duration,
+                '开始时间': res.start_time.strftime('%Y-%m-%d %H:%M:%S') if res.start_time else '',
+                '结束时间': res.end_time.strftime('%Y-%m-%d %H:%M:%S') if res.end_time else '',
+                '持续时间(分钟)': duration_minutes,
                 '描述': res.description or '',
                 '用户名': res.username,
                 '用户姓名': res.full_name,
@@ -369,7 +383,7 @@ class ReportService:
             Reservation.type,
             Reservation.status,
             Reservation.start_time,
-            Reservation.duration,
+            Reservation.end_time,
             Resource.name.label('resource_name')
         ).join(
             Resource, Reservation.resource_id == Resource.id
@@ -379,14 +393,22 @@ class ReportService:
             Reservation.created_at.desc()
         ).limit(10).all()
         
-        recent_data = [{
-            'id': res.id,
-            'type': res.type.value if res.type else '',
-            'status': res.status.value if res.status else '',
-            'reservation_time': res.start_time.isoformat() if res.start_time else '',
-            'duration': res.duration,
-            'resource_name': res.resource_name
-        } for res in recent_reservations]
+        recent_data = []
+        for res in recent_reservations:
+            # 计算持续时间（分钟）
+            duration_minutes = 0
+            if res.start_time and res.end_time:
+                duration = res.end_time - res.start_time
+                duration_minutes = int(duration.total_seconds() / 60)
+            
+            recent_data.append({
+                'id': res.id,
+                'type': res.type.value if res.type else '',
+                'status': res.status.value if res.status else '',
+                'reservation_time': res.start_time.isoformat() if res.start_time else '',
+                'duration': duration_minutes,
+                'resource_name': res.resource_name
+            })
         
         return {
             'user_info': {

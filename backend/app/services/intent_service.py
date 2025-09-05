@@ -94,10 +94,29 @@ class EnhancedIntentService:
                 r'(\d+)分钟',
                 r'(半小时|一小时|两小时|三小时)'
             ],
+            'attendee_count': [
+                r'(\d+)人',
+                r'(\d+)个人',
+                r'(一|二|三|四|五|六|七|八|九|十|十一|十二|十三|十四|十五|十六|十七|十八|十九|二十)人',
+                r'(\d+)位',
+                r'我们(\d+)个',
+                r'共(\d+)人'
+            ],
+            'equipment_requirements': [
+                r'(投影仪|投影|projector)',
+                r'(电视|TV|tv|屏幕)',
+                r'(白板|whiteboard)',
+                r'(音响|音箱|sound)',
+                r'(视频会议|video|conference)',
+                r'(空调|air)',
+                r'(WiFi|wifi|网络)',
+                r'(麦克风|microphone|mic)'
+            ],
             'room_type': [
                 r'(大|小|中).*会议室',
                 r'会议室.*(\d+)',
-                r'(多媒体|投影|视频).*会议室'
+                r'(多媒体|投影|视频).*会议室',
+                r'(培训室|讨论室|会议室)'
             ],
             'visitor_info': [
                 r'(\d+)人',

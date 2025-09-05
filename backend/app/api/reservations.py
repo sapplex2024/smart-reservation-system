@@ -2,11 +2,38 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import List, Optional
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
+from sqlalchemy import func
 
 from app.models.database import get_db, Reservation, Resource, User, ReservationType, ReservationStatus
 
 router = APIRouter()
+
+def _generate_reservation_number(db: Session, created_at: datetime = None) -> str:
+    """
+    生成预约编号
+    格式：年月日期+编号 (例如：250903001)
+    """
+    if created_at is None:
+        created_at = datetime.now()
+    
+    # 获取日期字符串 (年月日)
+    date_str = created_at.strftime('%y%m%d')
+    
+    # 查询当天已有的预约数量
+    start_of_day = created_at.replace(hour=0, minute=0, second=0, microsecond=0)
+    end_of_day = start_of_day + timedelta(days=1)
+    
+    count = db.query(func.count(Reservation.id)).filter(
+        Reservation.created_at >= start_of_day,
+        Reservation.created_at < end_of_day
+    ).scalar() or 0
+    
+    # 生成序号（从1开始）
+    sequence = count + 1
+    
+    # 返回格式化的预约编号
+    return f"{date_str}{sequence:03d}"
 
 # Pydantic models
 class ReservationCreate(BaseModel):
@@ -30,12 +57,13 @@ class ReservationUpdate(BaseModel):
 
 class ReservationResponse(BaseModel):
     id: int
+    reservation_number: Optional[str] = None  # 添加预约编号字段
     type: ReservationType
     title: str
     description: Optional[str]
     start_time: datetime
     end_time: datetime
-    status: ReservationStatus
+    status: str  # 改为字符串类型，返回中文状态
     resource_name: Optional[str] = None
     user_name: str
     participants: List[str]
@@ -45,9 +73,17 @@ class ReservationResponse(BaseModel):
     class Config:
         from_attributes = True
 
-class ResourceResponse(BaseModel):
-    id: int
-    name: str
+# 状态映射函数
+def get_status_display(status: ReservationStatus) -> str:
+    """将状态枚举转换为中文显示"""
+    status_map = {
+        ReservationStatus.PENDING: "待审批",
+        ReservationStatus.APPROVED: "已批准",
+        ReservationStatus.REJECTED: "已拒绝",
+        ReservationStatus.CANCELLED: "已取消",
+        ReservationStatus.COMPLETED: "已完成"
+    }
+    return status_map.get(status, "未知")
 
 class PaginatedReservationResponse(BaseModel):
     items: List[ReservationResponse]
@@ -130,6 +166,12 @@ async def create_reservation(
     db.commit()
     db.refresh(db_reservation)
     
+    # 生成预约编号
+    reservation_number = _generate_reservation_number(db, db_reservation.created_at)
+    db_reservation.reservation_number = reservation_number
+    db.commit()
+    db.refresh(db_reservation)
+    
     # 构造响应
     resource_name = None
     if db_reservation.resource:
@@ -137,12 +179,13 @@ async def create_reservation(
     
     return ReservationResponse(
         id=db_reservation.id,
+        reservation_number=db_reservation.reservation_number,  # 添加预约编号
         type=db_reservation.type,
         title=db_reservation.title,
         description=db_reservation.description,
         start_time=db_reservation.start_time,
         end_time=db_reservation.end_time,
-        status=db_reservation.status,
+        status=get_status_display(db_reservation.status),  # 使用中文状态
         resource_name=resource_name,
         user_name=db_reservation.user.full_name,
         participants=db_reservation.participants or [],
@@ -191,12 +234,13 @@ async def get_reservations(
     items = [
         ReservationResponse(
             id=res.id,
+            reservation_number=res.reservation_number,  # 添加预约编号
             type=res.type,
             title=res.title,
             description=res.description,
             start_time=res.start_time,
             end_time=res.end_time,
-            status=res.status,
+            status=get_status_display(res.status),  # 使用中文状态
             resource_name=res.resource.name if res.resource else None,
             user_name=res.user.full_name,
             participants=res.participants or [],
@@ -236,12 +280,13 @@ async def get_reservation(
     
     return ReservationResponse(
         id=reservation.id,
+        reservation_number=reservation.reservation_number,  # 添加预约编号
         type=reservation.type,
         title=reservation.title,
         description=reservation.description,
         start_time=reservation.start_time,
         end_time=reservation.end_time,
-        status=reservation.status,
+        status=get_status_display(reservation.status),  # 使用中文状态
         resource_name=reservation.resource.name if reservation.resource else None,
         user_name=reservation.user.full_name,
         participants=reservation.participants or [],
@@ -286,7 +331,7 @@ async def update_reservation(
         description=reservation.description,
         start_time=reservation.start_time,
         end_time=reservation.end_time,
-        status=reservation.status,
+        status=get_status_display(reservation.status),  # 使用中文状态
         resource_name=reservation.resource.name if reservation.resource else None,
         user_name=reservation.user.full_name,
         participants=reservation.participants or [],

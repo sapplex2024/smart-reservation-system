@@ -7,6 +7,8 @@ export interface User {
   email: string
   full_name: string
   role: string
+  company_name?: string
+  phone?: string
   created_at: string
 }
 
@@ -28,7 +30,7 @@ export const useAuthStore = defineStore('auth', () => {
       formData.append('username', username)
       formData.append('password', password)
       
-      const response = await fetch('/api/auth/login', {
+      const response = await fetch('/api/auth/token', {
         method: 'POST',
         body: formData
       })
@@ -67,6 +69,8 @@ export const useAuthStore = defineStore('auth', () => {
     username: string
     email: string
     full_name: string
+    company_name?: string
+    phone?: string
     password: string
   }) => {
     try {
