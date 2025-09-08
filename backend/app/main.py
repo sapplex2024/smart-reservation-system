@@ -82,7 +82,7 @@ app.include_router(ai_config_router, prefix="/api/v1/ai", tags=["AI配置管理"
 async def root():
     return {
         "message": "智能预约系统 API",
-        "version": "1.0.0",
+        "version": "1.1.2",
         "docs": "/docs",
         "status": "running"
     }
