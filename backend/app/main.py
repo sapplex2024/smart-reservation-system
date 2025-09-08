@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 import uvicorn
 
-from app.models.database import get_db, User
+from app.models.database import get_db, User, create_tables
 from app.core.config import settings
 
 # 导入路由
@@ -30,7 +30,7 @@ from .api.ai_config import router as ai_config_router
 app = FastAPI(
     title="智能预约系统 API",
     description="基于大模型的智能预约管理系统",
-    version="1.0.0",
+    version="1.1.2",
     docs_url="/docs",
     redoc_url="/redoc"
 )
@@ -95,6 +95,12 @@ async def health_check():
 # 启动事件
 @app.on_event("startup")
 async def startup_event():
+    # 确保数据库表已创建（包含 SystemLog 等统计所需表）
+    try:
+        create_tables()
+        print("数据库表检查/创建完成")
+    except Exception as e:
+        print(f"数据库建表失败: {e}")
     print("智能预约系统 API 启动成功")
     print(f"API文档地址: http://localhost:8000/docs")
 
